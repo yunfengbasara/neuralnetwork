@@ -1,2 +1,2 @@
 # neuralnetwork
-a simple neuralnetwork by javascript
+a simple neuralnetwork by javascript (node.js)
