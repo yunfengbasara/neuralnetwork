@@ -54,9 +54,16 @@ function testNetwork(samples) {
     });
 }
 
+// SGD
 testNetwork(testsamples);
 for (let n = 0; n < 10000; n++) {
-    minibatch(samples);
+    let temps = [];
+    for (let s = 0; s < 4; s++) {
+        let randomIdx = Math.floor(Math.random() * samples.length);
+        temps.push(samples[randomIdx]);
+    }
+    //minibatch(samples);
+    minibatch(temps);
 }
 testNetwork(testsamples);
 
