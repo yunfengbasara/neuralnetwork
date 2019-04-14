@@ -1,3 +1,6 @@
+// 学习速度
+const learnSpeed = 0.5;
+
 // 数组操作
 function optArray(a, b, opt) {
     if (a.length != b.length) {
@@ -115,8 +118,8 @@ class Layer {
 
     UpdateNabla(batchsize = 1) {
         this._layer.forEach(neuron => {
-            neuron.Bias -= neuron.NablaB / batchsize;
-            neuron.Weights = optArray(neuron.Weights, neuron.NablaW, (a, b) => a - b / batchsize);
+            neuron.Bias -= learnSpeed * neuron.NablaB / batchsize;
+            neuron.Weights = optArray(neuron.Weights, neuron.NablaW, (a, b) => a - learnSpeed * b / batchsize);
             neuron.NablaB = 0.0;
             neuron.NablaW = neuron.NablaW.map(() => 0);
         });
@@ -129,10 +132,13 @@ class Layer {
 
     Print() {
         this._layer.forEach(neuron => {
-            console.log(neuron.Weights);
-            console.log(neuron.Bias);
-            console.log(neuron.LambdaZ);
-            console.log(neuron.Activation);
+            console.log(`weights: ${neuron.Weights}`);
+            console.log(`bias: ${neuron.Bias}`);
+            console.log(`lambdaz: ${neuron.LambdaZ}`);
+            console.log(`activation: ${neuron.Activation}`);
+            console.log(`nablaw: ${neuron.NablaW}`);
+            console.log(`nablab: ${neuron.NablaB}`);
+            console.log(`nablae: ${neuron.NablaE}`);
         });
     }
 }
@@ -145,7 +151,14 @@ class NeuralNetwork {
         }
 
         this._inputs = [];
+        for (let n = 0; n < args[0]; n++) {
+            this._inputs.push(0);
+        }
+
         this._outputs = [];
+        for (let n = 0; n < args[args.length - 1]; n++) {
+            this._outputs.push(0);
+        }
 
         this._layers = [];
         for (let n = 1; n < args.length; n++) {
@@ -170,7 +183,7 @@ class NeuralNetwork {
     Cost(x, y) {
         return optArray(x, y, (a, b) => {
             let z = a - b;
-            return Math.pow(z, 2); // / 2; 为了让输出更靠近1求导数的时候将/2加上方便运算
+            return Math.pow(z, 2); /// 2; //为了让输出更靠近1求导数的时候将/2加上方便运算
         });
     }
 
@@ -232,14 +245,23 @@ class NeuralNetwork {
         return costList.reduce((prev, cur) => prev + cur, 0);
     }
 
-    Print() {
-        // console.log(`neural network state:`);
-        // let laycount = 0;
-        // this._layers.forEach(layer => {
-        //     console.log(`第${laycount++}层`);
-        //     layer.Print();
-        // });
+    DebugPrint() {
+        console.log(`neural network state:`);
+        let laycount = 0;
+        this._layers.forEach(layer => {
+            console.log(`第${laycount++}层`);
+            layer.Print();
+        });
         console.log(`cost value:${this.TotalCost()}`);
+    }
+
+    SimplePrint() {
+        console.log(`cost value:${this.TotalCost()}`);
+    }
+
+    // 精确控制神经网络初始参数(方便测试验证)
+    Neurons(lay) {
+        return this._layers[lay].Neurons;
     }
 }
 
