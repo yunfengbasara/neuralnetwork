@@ -54,7 +54,7 @@ function testNetwork(samples) {
     });
 }
 
-// SGD
+// using mini-batch stochastic gradient descent
 testNetwork(testsamples);
 for (let n = 0; n < 10000; n++) {
     let temps = [];
