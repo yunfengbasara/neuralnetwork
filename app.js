@@ -1,5 +1,5 @@
 let NeuralNetwork = require(`./NeuralNetwork.js`);
-let Gomoku = new NeuralNetwork(2, 16, 1);
+let Gobang = new NeuralNetwork(2, 16, 1);
 let samples = [
     { x: [1.0e-1, 2.0e-1], y: [0] },
     { x: [1.5e-1, 3.0e-1], y: [0] },
@@ -24,13 +24,13 @@ let samples = [
 
 function minibatch(samples) {
     samples.forEach(sample => {
-        Gomoku.Inputs = sample.x;
-        Gomoku.Outputs = sample.y;
-        Gomoku.FeedForward();
-        Gomoku.Backprop();
+        Gobang.Inputs = sample.x;
+        Gobang.Outputs = sample.y;
+        Gobang.FeedForward();
+        Gobang.Backprop();
     });
     let batchsize = samples.length;
-    Gomoku.UpdateNabla(batchsize);
+    Gobang.UpdateNabla(batchsize);
 }
 
 let testsamples = [
@@ -47,10 +47,10 @@ let testsamples = [
 function testNetwork(samples) {
     console.log("test samples:");
     samples.forEach(sample => {
-        Gomoku.Inputs = sample.x;
-        Gomoku.Outputs = sample.y;
-        Gomoku.FeedForward();
-        Gomoku.SimplePrint();
+        Gobang.Inputs = sample.x;
+        Gobang.Outputs = sample.y;
+        Gobang.FeedForward();
+        Gobang.SimplePrint();
     });
 }
 
@@ -67,26 +67,28 @@ for (let n = 0; n < 10000; n++) {
 }
 testNetwork(testsamples);
 
+let Game = require(`./Gobang`);
+let GobangGame = new Game;
 // sometest
 // 精确控制神经网络参数，便于测试
-// let Gomoku = new NeuralNetwork(2, 2, 2);
-// let neurons = Gomoku.Neurons(0);
+// let Gobang = new NeuralNetwork(2, 2, 2);
+// let neurons = Gobang.Neurons(0);
 // neurons[0].Weights = [0.15, 0.20];
 // neurons[0].Bias = 0.35;
 // neurons[1].Weights = [0.25, 0.30];
 // neurons[1].Bias = 0.35;
-// neurons = Gomoku.Neurons(1);
+// neurons = Gobang.Neurons(1);
 // neurons[0].Weights = [0.40, 0.45];
 // neurons[0].Bias = 0.6;
 // neurons[1].Weights = [0.50, 0.55];
 // neurons[1].Bias = 0.6;
 
-// Gomoku.Inputs = [0.05, 0.1];
-// Gomoku.Outputs = [0.01, 0.99];
-// Gomoku.FeedForward();
-// Gomoku.Backprop();
-// Gomoku.DebugPrint();
+// Gobang.Inputs = [0.05, 0.1];
+// Gobang.Outputs = [0.01, 0.99];
+// Gobang.FeedForward();
+// Gobang.Backprop();
+// Gobang.DebugPrint();
 
-// Gomoku.UpdateNabla();
-// Gomoku.FeedForward();
-// Gomoku.DebugPrint();
+// Gobang.UpdateNabla();
+// Gobang.FeedForward();
+// Gobang.DebugPrint();
