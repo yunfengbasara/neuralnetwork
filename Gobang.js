@@ -8,7 +8,16 @@ const WinCount = 4;
 
 class Game {
     constructor() {
-        this._start = "black";  // "white"
+        this._type = ["black", "white"];
+        this._curType = 0;
+        this._board = [];
+        this._order = [];
+    }
+
+    Init() {
+        this.Shuffle(this._type);
+        this._curType = 0;
+
         this._board = [];
         for (let n = 0; n < BoardSize ** 2; n++) {
             // type: empty black white
@@ -16,23 +25,65 @@ class Game {
             this._board.push({ type: "empty", order: 0 });
         }
 
-        this._board[this.PosToIndex({ x: 0, y: 0 })] = { type: "white", order: 0 };
-        this._board[this.PosToIndex({ x: 2, y: 1 })] = { type: "black", order: 0 };
-        this._board[this.PosToIndex({ x: 3, y: 2 })] = { type: "black", order: 0 };
-        this._board[this.PosToIndex({ x: 4, y: 3 })] = { type: "black", order: 0 };
-        this._board[this.PosToIndex({ x: 5, y: 4 })] = { type: "black", order: 0 };
-        this._board[this.PosToIndex({ x: 5, y: 5 })] = { type: "white", order: 0 };
-        console.log(this.CheckWin("black", { x: 2, y: 1 }));
+        this._order = [];
+        for (let n = 0; n < BoardSize ** 2; n++) {
+            this._order.push(n);
+        }
+        this.Shuffle(this._order);
+    }
+
+    Run() {
+        for (let n = 0; n < this._order.length; n++) {
+            let ord = this._order[n];
+            this._board[ord] = { type: this.GetCurType(), order: n };
+            if (this.CheckWin(this.GetCurType(), this.IndexToPos(ord))) {
+                return { winner: this.GetCurType() };
+            }
+            this.NextTurn();
+        }
+        return { winner: "draw game" };
+    }
+
+    Print() {
+        let board = "";
+        this._board.forEach((item, idx) => {
+            if (idx !== 0 && idx % BoardSize === 0) {
+                board += "|\r\n";
+            }
+            switch (item.type) {
+                case "empty": board += `| `; break;
+                case "black": board += `|x`; break;
+                case "white": board += `|o`; break;
+            }
+        });
+        board += "|";
+        console.log(board);
+    }
+
+    GetCurType() {
+        return this._type[this._curType];
+    }
+
+    NextTurn() {
+        this._curType++;
+        this._curType %= this._type.length;
+    }
+
+    Shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            let j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
     }
 
     IndexToPos(idx) {
-        let x = Math.floor(idx / BoardSize);
-        let y = Math.floor(idx % BoardSize);
+        let x = Math.floor(idx % BoardSize);
+        let y = Math.floor(idx / BoardSize);
         return { x: x, y: y };
     }
 
     PosToIndex(pos) {
-        return pos.x * BoardSize + pos.y;
+        return pos.y * BoardSize + pos.x;
     }
 
     CheckWin(type, pos) {
@@ -43,66 +94,73 @@ class Game {
         return false;
     }
 
-    N_S(type, pos) {
-        let startX = Math.max(0, pos.x - WinCount + 1);
-        let endX = Math.min(BoardSize - 1, pos.x + WinCount);
-        let nWinCount = 0;
-        for (let n = startX; n < endX; n++) {
-            let p = { x: n, y: pos.y };
-            let idx = this.PosToIndex(p);
-            if (this._board[idx].type === type) {
-                nWinCount++;
-            } else {
-                nWinCount = 0;
-            }
-            if (nWinCount === WinCount) {
-                return true;
-            }
+    CheckEdge(pos) {
+        if (pos.x >= 0 &&
+            pos.x < BoardSize &&
+            pos.y >= 0 &&
+            pos.y < BoardSize) {
+            return true;
         }
+        return false;
+    }
+
+    CheckType(pos, type) {
+        let index = this.PosToIndex(pos);
+        return this._board[index].type === type;
+    }
+
+    GetDirectionSameType(pos, type, diropt) {
+        let nSamePiece = 0;
+        while (this.CheckEdge(pos) &&
+            this.CheckType(pos, type)) {
+            nSamePiece++;
+            diropt(pos);
+        }
+        return nSamePiece;
+    }
+
+    N_S(type, pos) {
+        let nSamePiece = 1, checkPos = {};
+        checkPos = { x: pos.x, y: pos.y - 1 };
+        nSamePiece += this.GetDirectionSameType(checkPos, type, (p) => p.y--);
+        if (nSamePiece >= WinCount) { return true; }
+        checkPos = { x: pos.x, y: pos.y + 1 };
+        nSamePiece += this.GetDirectionSameType(checkPos, type, (p) => p.y++);
+        if (nSamePiece >= WinCount) { return true; }
         return false;
     }
 
     W_E(type, pos) {
-        let startY = Math.max(0, pos.y - WinCount + 1);
-        let endY = Math.min(BoardSize - 1, pos.y + WinCount);
-        let nWinCount = 0;
-        for (let n = startY; n < endY; n++) {
-            let p = { x: pos.x, y: n };
-            let idx = this.PosToIndex(p);
-            if (this._board[idx].type === type) {
-                nWinCount++;
-            } else {
-                nWinCount = 0;
-            }
-            if (nWinCount === WinCount) {
-                return true;
-            }
-        }
+        let nSamePiece = 1, checkPos = {};
+        checkPos = { x: pos.x - 1, y: pos.y };
+        nSamePiece += this.GetDirectionSameType(checkPos, type, (p) => p.x--);
+        if (nSamePiece >= WinCount) { return true; }
+        checkPos = { x: pos.x + 1, y: pos.y };
+        nSamePiece += this.GetDirectionSameType(checkPos, type, (p) => p.x++);
+        if (nSamePiece >= WinCount) { return true; }
         return false;
     }
 
     WN_ES(type, pos) {
-        let startSep = Math.min(pos.x, pos.y);
-        let endSep = Math.min(BoardSize - pos.x, BoardSize - pos.y);
-        let startPos = { x: pos.x - startSep, y: pos.y - startSep };
-        let nWinCount = 0;
-        for (let n = 0; n < startSep + endSep; n++) {
-            let p = { x: startPos.x + n, y: startPos.y + n };
-            let idx = this.PosToIndex(p);
-            if (this._board[idx].type === type) {
-                nWinCount++;
-            } else {
-                nWinCount = 0;
-            }
-            if (nWinCount === WinCount) {
-                return true;
-            }
-        }
+        let nSamePiece = 1, checkPos = {};
+        checkPos = { x: pos.x - 1, y: pos.y - 1 };
+        nSamePiece += this.GetDirectionSameType(checkPos, type, (p) => (p.x-- , p.y--));
+        if (nSamePiece >= WinCount) { return true; }
+        checkPos = { x: pos.x + 1, y: pos.y + 1 };
+        nSamePiece += this.GetDirectionSameType(checkPos, type, (p) => (p.x++ , p.y++));
+        if (nSamePiece >= WinCount) { return true; }
         return false;
     }
 
     EN_WS(type, pos) {
-
+        let nSamePiece = 1, checkPos = {};
+        checkPos = { x: pos.x + 1, y: pos.y - 1 };
+        nSamePiece += this.GetDirectionSameType(checkPos, type, (p) => (p.x++ , p.y--));
+        if (nSamePiece >= WinCount) { return true; }
+        checkPos = { x: pos.x - 1, y: pos.y + 1 };
+        nSamePiece += this.GetDirectionSameType(checkPos, type, (p) => (p.x-- , p.y++));
+        if (nSamePiece >= WinCount) { return true; }
+        return false;
     }
 };
 

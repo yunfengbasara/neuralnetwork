@@ -69,6 +69,13 @@
 
 let Game = require(`./Gobang`);
 let GobangGame = new Game;
+for (let n = 0; n < 10; n++) {
+    GobangGame.Init();
+    console.log(GobangGame.Run());
+    GobangGame.Print();
+}
+
+
 // sometest
 // 精确控制神经网络参数，便于测试
 // let Gobang = new NeuralNetwork(2, 2, 2);
