@@ -8,7 +8,7 @@ const WinCount = 4;
 
 class Game {
     constructor() {
-        this._type = ["black", "white"];
+        this._type = [1, -1];
         this._curType = 0;
         this._board = [];
         this._order = [];
@@ -20,9 +20,9 @@ class Game {
 
         this._board = [];
         for (let n = 0; n < BoardSize ** 2; n++) {
-            // type: empty black white
+            // type: empty black white 0 1 -1
             // order: 1 2 3 4 ……
-            this._board.push({ type: "empty", order: 0 });
+            this._board.push({ type: 0, order: 0 });
         }
 
         this._order = [];
@@ -51,9 +51,9 @@ class Game {
                 board += "|\r\n";
             }
             switch (item.type) {
-                case "empty": board += `| `; break;
-                case "black": board += `|x`; break;
-                case "white": board += `|o`; break;
+                case 0: board += `| `; break;
+                case 1: board += `|x`; break;
+                case -1: board += `|o`; break;
             }
         });
         board += "|";

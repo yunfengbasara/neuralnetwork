@@ -67,13 +67,21 @@
 // }
 // testNetwork(testsamples);
 
-let Game = require(`./Gobang`);
-let GobangGame = new Game;
-for (let n = 0; n < 10; n++) {
-    GobangGame.Init();
-    console.log(GobangGame.Run());
-    GobangGame.Print();
-}
+let Agent = require(`./QLearning`);
+let agent = new Agent;
+agent.AddQValue([0, 1, -1, 0], [1, 2, 3, 1]);
+agent.AddQValue([0, -1, 1, -1], [1, 1, 2, 4]);
+agent.Print();
+
+agent.UpdateQTable([0, 1, -1, 0], 3, 2);
+agent.Print();
+// let Game = require(`./Gobang`);
+// let GobangGame = new Game;
+// for (let n = 0; n < 10; n++) {
+//     GobangGame.Init();
+//     console.log(GobangGame.Run());
+//     GobangGame.Print();
+// }
 
 
 // sometest
