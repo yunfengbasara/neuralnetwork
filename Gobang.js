@@ -21,8 +21,7 @@ class Game {
         this._board = [];
         for (let n = 0; n < BoardSize ** 2; n++) {
             // type: empty black white 0 1 -1
-            // order: 1 2 3 4 ……
-            this._board.push({ type: 0, order: 0 });
+            this._board.push(0);
         }
 
         this._order = [];
@@ -32,16 +31,29 @@ class Game {
         this.Shuffle(this._order);
     }
 
-    Run() {
+    Generate() {
+        this.Init();
+        // {state:board, action:index, type:1 -1}
+        let gameStep = [];
         for (let n = 0; n < this._order.length; n++) {
-            let ord = this._order[n];
-            this._board[ord] = { type: this.GetCurType(), order: n };
-            if (this.CheckWin(this.GetCurType(), this.IndexToPos(ord))) {
-                return { winner: this.GetCurType() };
+            let index = this._order[n];
+            let curtype = this.GetCurType();
+
+            gameStep.push({
+                state: this._board.slice(),
+                action: index,
+                type: curtype,
+            });
+
+            this._board[index] = curtype;
+
+            if (this.CheckWin(curtype, this.IndexToPos(index))) {
+                break;
             }
+
             this.NextTurn();
         }
-        return { winner: "draw game" };
+        return gameStep;
     }
 
     Print() {
