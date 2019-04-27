@@ -33,8 +33,11 @@ class Game {
 
     Generate() {
         this.Init();
+
         // {state:board, action:index, type:1 -1}
         let gameStep = [];
+        let winType = 0;
+
         for (let n = 0; n < this._order.length; n++) {
             let index = this._order[n];
             let curtype = this.GetCurType();
@@ -48,24 +51,44 @@ class Game {
             this._board[index] = curtype;
 
             if (this.CheckWin(curtype, this.IndexToPos(index))) {
+                winType = curtype;
                 break;
             }
-
             this.NextTurn();
         }
-        return gameStep;
+        return { gameStep: gameStep, winType: winType };
     }
 
-    Print() {
+    PrintResult() {
         let board = "";
-        this._board.forEach((item, idx) => {
+        this._board.forEach((type, idx) => {
             if (idx !== 0 && idx % BoardSize === 0) {
                 board += "|\r\n";
             }
-            switch (item.type) {
+            switch (type) {
                 case 0: board += `| `; break;
-                case 1: board += `|x`; break;
-                case -1: board += `|o`; break;
+                case 1: board += `|○`; break;
+                case -1: board += `|x`; break;
+            }
+        });
+        board += "|";
+        console.log(board);
+    }
+
+    Print({ state, action }) {
+        let board = "";
+        state.forEach((t, idx) => {
+            if (idx !== 0 && idx % BoardSize === 0) {
+                board += "|\r\n";
+            }
+            if (idx === action) {
+                board += `|●`;
+                return;
+            }
+            switch (t) {
+                case 0: board += `| `; break;
+                case 1: board += `|○`; break;
+                case -1: board += `|x`; break;
             }
         });
         board += "|";
@@ -118,7 +141,7 @@ class Game {
 
     CheckType(pos, type) {
         let index = this.PosToIndex(pos);
-        return this._board[index].type === type;
+        return this._board[index] === type;
     }
 
     GetDirectionSameType(pos, type, diropt) {

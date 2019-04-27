@@ -1,67 +1,18 @@
 class Agent {
     // 默认我方1 对方-1，每次的行动都是1
     constructor() {
-        this._memorySize = 5000;
-        this._QTable = [];  // {state,value} action state 对应
+        this._memorySize = 50000;
+        this._QTable = new Map();  // state,values
         this._learnSpeed = 0.9;
         this._lambda = 0.95;
     }
 
-    ArrayIsSame(a, b) {
-        return a.join() === b.join();
-    }
-
-    FindQValue(state, action) {
-        let qItem = this._QTable.find(item => {
-            return this.ArrayIsSame(item.state, state);
-        });
-        if (qItem === undefined) {
-            return 0;
-        }
-        return qItem.value[action];
-    }
-
-    SetQValue(state, action, value) {
-        let index = this._QTable.findIndex(item => {
-            return this.ArrayIsSame(item.state, state);
-        });
-        if (index === -1) {
-            return;
-        }
-        this._QTable[index].value[action] = value;
-    }
-
     FindMaxQValue(state) {
-        let qItem = this._QTable.find(item => {
-            return this.ArrayIsSame(item.state, state);
-        });
-        if (qItem === undefined) {
+        let values = this._QTable.get(state);
+        if (values === undefined) {
             return 0;
         }
-        return Math.max(...qItem.value);
-    }
-
-    HasState(state) {
-        let qItem = this._QTable.find(item => {
-            return this.ArrayIsSame(item.state, state);
-        });
-        if (qItem === undefined) {
-            return false;
-        }
-        return true;
-    }
-
-    AddQValue(state, value) {
-        if (this._QTable.length >= this._memorySize) {
-            this._QTable.shift();
-        }
-        this._QTable.push({ state: state, value: value });
-    }
-
-    GetNextState(s, a) {
-        let ns = s.slice();
-        ns[a] = 1;
-        return ns;
+        return Math.max(...values);
     }
 
     ReverseState(s) {
@@ -73,22 +24,44 @@ class Agent {
         return rs;
     }
 
+    Update({ state, action, reward }) {
+        // 添加新纪录
+        let stateStr = state.join();
+        if (!this._QTable.has(stateStr)) {
+            let values = state.map(() => 0);
+            this._QTable.set(stateStr, values);
+
+            if (this._QTable.size >= this._memorySize) {
+                // 删除一些记录
+            }
+        }
+
+        this.UpdateQTable(stateStr, action, reward);
+    }
+
     UpdateQTable(s, a, r) {
-        let stateValue = this.FindQValue(s, a);
-        let nextState = this.GetNextState(s, a);
+        let values = this._QTable.get(s);
+        let stateValue = values[a];
+        let nextState = s.split(",");
+        nextState = nextState.map(n => parseInt(n));
+        nextState[a] = 1;
         let reverseState = this.ReverseState(nextState);
-        let nextMaxValue = this.FindMaxQValue(reverseState);
+        let nextMaxValue = this.FindMaxQValue(reverseState.join());
         nextMaxValue = -nextMaxValue;
         let reward = this._learnSpeed * (r + this._lambda * nextMaxValue);
         stateValue = (1 - this._learnSpeed) * stateValue + reward;
-        this.SetQValue(s, a, stateValue);
+        values[a] = stateValue;
+        this._QTable.set(s, values);
     }
 
     Print() {
-        this._QTable.forEach(item => {
-            console.log(`state:${item.state}`);
-            console.log(`value:${item.value}`);
-        });
+        for (let [key, value] of this._QTable) {
+            if (value.findIndex(v => v !== 0 && v != 0.9 && v != -0.9) == -1) {
+                continue;
+            }
+            console.log(`state:${key}`);
+            console.log(`value:${value}`);
+        }
     }
 }
 

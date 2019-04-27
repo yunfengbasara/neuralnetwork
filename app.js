@@ -66,22 +66,45 @@
 //     minibatch(temps);
 // }
 // testNetwork(testsamples);
-
-// let Agent = require(`./QLearning`);
-// let agent = new Agent;
-// agent.AddQValue([0, 1, -1, 0], [1, 2, 3, 1]);
-// agent.AddQValue([0, -1, 1, -1], [1, 1, 2, 1]);
-// agent.Print();
-
-// agent.UpdateQTable([0, 1, -1, 0], 3, 2);
-// agent.Print();
+let Agent = require(`./QLearning`);
+let agent = new Agent;
 
 let Game = require(`./Gobang`);
-let Gobang = new Game;
+let game = new Game;
 
-Gobang.Generate();
-Gobang.Print();
+for (let n = 0; n < 10000; n++) {
+    let { gameStep, winType } = game.Generate();
 
+    // 单边化处理
+    let steps = gameStep.map(item => {
+        if (item.type === 1) {
+            return { state: item.state, action: item.action, reward: 0 };
+        }
+        let reverseState = item.state.map(s => {
+            if (s === 1) return -1;
+            if (s === -1) return 1;
+            return 0;
+        });
+        return { state: reverseState, action: item.action, reward: 0 };
+    });
+
+    // steps.forEach((step, idx) => {
+    //     console.log(`step:${idx}`);
+    //     game.Print(step);
+    // });
+
+    // 单边化处理后，最后一步赢，倒数第二步输
+    if (winType !== 0) {
+        steps[steps.length - 1].reward = 1;
+        steps[steps.length - 2].reward = -1;
+    }
+
+    steps.forEach(item => {
+        agent.Update(item);
+    });
+}
+
+agent.Print();
 
 // sometest
 // 精确控制神经网络参数，便于测试
