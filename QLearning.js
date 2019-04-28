@@ -1,11 +1,15 @@
 class Agent {
     // 默认我方1 对方-1，每次的行动都是1
     constructor() {
-        this._memorySize = 50000;
-        this._QTable = new Map();  // state,values
+        this._memorySize = 10000;   // Q表总大小
+        this._cacheSize = 1000;     // 缓冲空间
+        this._QTable = new Map();   // state,values
         this._learnSpeed = 0.9;
         this._lambda = 0.95;
+        this._learnStart = false;   // 是否开始学习一次
     }
+
+    get LearnStart() { return this._learnStart; }
 
     FindMaxQValue(state) {
         let values = this._QTable.get(state);
@@ -25,15 +29,24 @@ class Agent {
     }
 
     Update({ state, action, reward }) {
+        this._learnStart = false;
+        // 删除旧记录
+        if (this._QTable.size >= this._memorySize) {
+            this._learnStart = true;
+            let delSize = this._cacheSize;
+            for (let [key] of this._QTable) {
+                this._QTable.delete(key);
+                if (delSize-- == 0) {
+                    break;
+                }
+            }
+        }
+
         // 添加新纪录
         let stateStr = state.join();
         if (!this._QTable.has(stateStr)) {
             let values = state.map(() => 0);
             this._QTable.set(stateStr, values);
-
-            if (this._QTable.size >= this._memorySize) {
-                // 删除一些记录
-            }
         }
 
         this.UpdateQTable(stateStr, action, reward);
@@ -55,6 +68,8 @@ class Agent {
     }
 
     Print() {
+        console.log(this._QTable.size);
+        return;
         for (let [key, value] of this._QTable) {
             if (value.findIndex(v => v !== 0 && v != 0.9 && v != -0.9) == -1) {
                 continue;

@@ -66,6 +66,7 @@
 //     minibatch(temps);
 // }
 // testNetwork(testsamples);
+
 let Agent = require(`./QLearning`);
 let agent = new Agent;
 
@@ -102,6 +103,13 @@ for (let n = 0; n < 10000; n++) {
     steps.forEach(item => {
         agent.Update(item);
     });
+
+    if (!agent.LearnStart) {
+        continue;
+    }
+
+    // sgd
+    agent.Print();
 }
 
 agent.Print();
