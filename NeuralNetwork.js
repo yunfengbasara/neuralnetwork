@@ -245,6 +245,17 @@ class NeuralNetwork {
         return costList.reduce((prev, cur) => prev + cur, 0);
     }
 
+    Minibatch(samples) {
+        samples.forEach(sample => {
+            this.Inputs = sample.x;
+            this.Outputs = sample.y;
+            this.FeedForward();
+            this.Backprop();
+        });
+        let batchsize = samples.length;
+        this.UpdateNabla(batchsize);
+    }
+
     DebugPrint() {
         console.log(`neural network state:`);
         let laycount = 0;

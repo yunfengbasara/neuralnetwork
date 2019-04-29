@@ -1,4 +1,5 @@
-// let NeuralNetwork = require(`./NeuralNetwork.js`);
+let NeuralNetwork = require(`./NeuralNetwork`);
+let neuralNetwork = new NeuralNetwork(36, 256, 36);
 // let Gobang = new NeuralNetwork(2, 16, 1);
 // let samples = [
 //     { x: [1.0e-1, 2.0e-1], y: [0] },
@@ -21,17 +22,6 @@
 //     { x: [1.55e-1, 3.10e-1], y: [0] },
 //     { x: [2.32e-1, 4.64e-1], y: [0] },
 // ];
-
-// function minibatch(samples) {
-//     samples.forEach(sample => {
-//         Gobang.Inputs = sample.x;
-//         Gobang.Outputs = sample.y;
-//         Gobang.FeedForward();
-//         Gobang.Backprop();
-//     });
-//     let batchsize = samples.length;
-//     Gobang.UpdateNabla(batchsize);
-// }
 
 // let testsamples = [
 //     { x: [1.0e-1, 2.0e-1], y: [0] },
@@ -62,8 +52,8 @@
 //         let randomIdx = Math.floor(Math.random() * samples.length);
 //         temps.push(samples[randomIdx]);
 //     }
-//     //minibatch(samples);
-//     minibatch(temps);
+//     //Gobang.Minibatch(samples);
+//     Gobang.Minibatch(temps);
 // }
 // testNetwork(testsamples);
 
@@ -73,7 +63,8 @@ let agent = new Agent;
 let Game = require(`./Gobang`);
 let game = new Game;
 
-for (let n = 0; n < 10000; n++) {
+let learnStep = 0;
+for (let n = 0; n < 100000; n++) {
     let { gameStep, winType } = game.Generate();
 
     // 单边化处理
@@ -104,12 +95,13 @@ for (let n = 0; n < 10000; n++) {
         agent.Update(item);
     });
 
-    if (!agent.LearnStart) {
-        continue;
-    }
-
     // sgd
-    agent.Print();
+    learnStep++;
+    if (learnStep === 1000) {
+        learnStep = 0;
+        let samples = agent.GetBatchs();
+
+    }
 }
 
 agent.Print();
