@@ -14,7 +14,10 @@ class Agent {
         if (values === undefined) {
             return 0;
         }
-        return Math.max(...values);
+
+        let states = state.split(",");
+        let tmpvalues = values.filter((v, index) => states[index] == "0");
+        return Math.max(...tmpvalues);
     }
 
     Update({ state, action, reward }) {

@@ -64,7 +64,7 @@ let Game = require(`./Gobang`);
 let game = new Game;
 
 let learnStep = 0;
-for (let n = 0; n < 100000; n++) {
+for (let n = 0; n < 1; n++) {
     let { gameStep, winType } = game.Generate();
 
     // 单边化处理
