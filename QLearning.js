@@ -7,6 +7,8 @@ class Agent {
         this._QTable = new Map();    // state,values
         this._learnSpeed = 0.9;
         this._lambda = 0.95;
+        this._min = -1;              // 归一化处理
+        this._max = 1;
     }
 
     FindMaxQValue(state) {
@@ -16,7 +18,7 @@ class Agent {
         }
 
         let states = state.split(",");
-        let tmpvalues = values.filter((v, index) => states[index] == "0");
+        let tmpvalues = values.filter((_, index) => states[index] == "0");
         return Math.max(...tmpvalues);
     }
 
@@ -60,6 +62,16 @@ class Agent {
         nMaxValue = -nMaxValue;
         let reward = this._learnSpeed * (r + this._lambda * nMaxValue);
         values[a] = (1 - this._learnSpeed) * values[a] + reward;
+
+        // 阈值处理
+        if (this._min > values[a]) {
+            values[a] = this._min;
+        }
+
+        if (this._max < values[a]) {
+            values[a] = this._max;
+        }
+
         this._QTable.set(stateStr, values);
     }
 
@@ -78,7 +90,10 @@ class Agent {
             let state = key.split(",");
             state = state.map(n => parseInt(n));
 
-            samples.push({ x: state, y: values });
+            // Min-max normalization
+            let sep = this._max - this._min;
+            let tmpvalues = values.map(v => (v - this._min) / sep);
+            samples.push({ x: state, y: tmpvalues });
         }
         return samples;
     }

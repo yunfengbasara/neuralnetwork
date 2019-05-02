@@ -1,5 +1,5 @@
-let NeuralNetwork = require(`./NeuralNetwork`);
-let neuralNetwork = new NeuralNetwork(36, 256, 36);
+// let NeuralNetwork = require(`./NeuralNetwork`);
+// //let Gobang = NeuralNetwork.Load(`gobang`);
 // let Gobang = new NeuralNetwork(2, 16, 1);
 // let samples = [
 //     { x: [1.0e-1, 2.0e-1], y: [0] },
@@ -56,6 +56,10 @@ let neuralNetwork = new NeuralNetwork(36, 256, 36);
 //     Gobang.Minibatch(temps);
 // }
 // testNetwork(testsamples);
+// Gobang.Save(`gobang`);
+
+let NeuralNetwork = require(`./NeuralNetwork`);
+let neuralNetwork = new NeuralNetwork(36, 36, 36);
 
 let Agent = require(`./QLearning`);
 let agent = new Agent;
@@ -63,48 +67,64 @@ let agent = new Agent;
 let Game = require(`./Gobang`);
 let game = new Game;
 
-let learnStep = 0;
-for (let n = 0; n < 1; n++) {
-    let { gameStep, winType } = game.Generate();
+function Epoch(count) {
+    for (let n = 0; n < count; n++) {
+        let { gameStep, winType } = game.Generate();
 
-    // 单边化处理
-    let steps = gameStep.map(item => {
-        if (item.type === 1) {
-            return { state: item.state, action: item.action, reward: 0 };
+        // 平局不参与计算
+        if (winType === 0) {
+            continue;
         }
-        let reverseState = item.state.map(s => {
-            if (s === 1) return -1;
-            if (s === -1) return 1;
-            return 0;
+
+        // 单边化处理
+        let steps = gameStep.map(item => {
+            if (item.type === 1) {
+                return { state: item.state, action: item.action, reward: 0 };
+            }
+            let reverseState = item.state.map(s => {
+                if (s === 1) return -1;
+                if (s === -1) return 1;
+                return 0;
+            });
+            return { state: reverseState, action: item.action, reward: 0 };
         });
-        return { state: reverseState, action: item.action, reward: 0 };
-    });
 
-    // steps.forEach((step, idx) => {
-    //     console.log(`step:${idx}`);
-    //     game.Print(step);
-    // });
+        // 设置该局得分
+        let winReward = 1;
+        let loseReward = -1;
+        for (let reidx = steps.length - 1, bWin = true;
+            reidx >= 0; reidx-- , bWin = !bWin) {
+            if (bWin) {
+                steps[reidx].reward = winReward;
+                winReward *= 0.45;
+            } else {
+                steps[reidx].reward = loseReward;
+                loseReward *= 0.45;
+            }
+        }
 
-    // 单边化处理后，最后一步赢，倒数第二步输
-    if (winType !== 0) {
-        steps[steps.length - 1].reward = 1;
-        steps[steps.length - 2].reward = -1;
+        steps.forEach(item => {
+            agent.Update(item);
+        });
+
+        // steps.forEach((step, idx) => {
+        //     console.log(`step:${idx}`);
+        //     game.Print(step);
+        // });
     }
 
-    steps.forEach(item => {
-        agent.Update(item);
-    });
-
-    // sgd
-    learnStep++;
-    if (learnStep === 1000) {
-        learnStep = 0;
-        let samples = agent.GetBatchs();
-
-    }
+    let samples = agent.GetBatchs();
+    neuralNetwork.Minibatch(samples);
 }
 
-agent.Print();
+let saveTime = 1000;
+for (let epoch = 0; epoch < 10000000; epoch++) {
+    Epoch(100);
+    neuralNetwork.SimplePrint();
+    if (epoch % saveTime === 0) {
+        neuralNetwork.Save(`gobang`);
+    }
+}
 
 // sometest
 // 精确控制神经网络参数，便于测试

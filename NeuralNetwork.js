@@ -274,6 +274,55 @@ class NeuralNetwork {
     Neurons(lay) {
         return this._layers[lay].Neurons;
     }
+
+    Save(name) {
+        let fs = require("fs");
+        let file = fs.openSync(name, 'w+');
+
+        let layers = [this._inputs.length];
+        this._layers.forEach(l => layers.push(l.Size));
+
+        // [[{weights:[],bias:},...], [{weights:[],bias:},...]]
+        let layersParam = [];
+        this._layers.forEach(l => {
+            let p = [];
+            l.Neurons.forEach(neuron => {
+                let d = { weights: [], bias: 0 };
+                d.weights = neuron.Weights;
+                d.bias = neuron.Bias;
+                p.push(d);
+            });
+            layersParam.push(p);
+        });
+
+        let desc = {
+            layer: layers,
+            params: layersParam,
+        };
+
+        fs.writeSync(file, JSON.stringify(desc));
+        fs.closeSync(file);
+    }
+
+    static Load(name) {
+        var fs = require("fs");
+        let stats = fs.statSync(name);
+        let file = fs.openSync(name, 'r');
+        let buffer = new Buffer.alloc(stats.size);
+        fs.readSync(file, buffer, 0, stats.size);
+        let desc = JSON.parse(buffer);
+        fs.closeSync(file);
+
+        let netWork = new NeuralNetwork(...desc.layer);
+        desc.params.forEach((layerparam, layer) => {
+            let neurons = netWork.Neurons(layer);
+            neurons.forEach((neuron, index) => {
+                neuron.Weights = layerparam[index].weights;
+                neuron.Bias = layerparam[index].bias;
+            });
+        });
+        return netWork;
+    }
 }
 
 module.exports = NeuralNetwork;

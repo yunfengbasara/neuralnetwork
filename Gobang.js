@@ -56,7 +56,7 @@ class Game {
             }
             this.NextTurn();
         }
-        return { gameStep: gameStep, winType: winType };
+        return { gameStep, winType };
     }
 
     PrintResult() {
