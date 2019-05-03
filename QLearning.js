@@ -11,6 +11,9 @@ class Agent {
         this._max = 1;
     }
 
+    get QTable() { return this._QTable; }
+    set QTable(qtable) { this._QTable = qtable; }
+
     FindMaxQValue(state) {
         let values = this._QTable.get(state);
         if (values === undefined) {
@@ -100,13 +103,40 @@ class Agent {
 
     Print() {
         for (let [key, value] of this._QTable) {
-            // if (value.findIndex(v => v !== 0 && v != 0.9 && v != -0.9) == -1) {
-            //     continue;
-            // }
             console.log(`state:${key}`);
             console.log(`value:${value}`);
         }
     }
+
+    Save() {
+        let fs = require("fs");
+        let file = fs.openSync(`qlearning_temp`, 'w+');
+        let qtablelist = [];
+        for (let [key, value] of this._QTable) {
+            qtablelist.push({ s: key, v: value });
+        }
+        fs.writeSync(file, JSON.stringify(qtablelist));
+        fs.closeSync(file);
+    }
+
+    static Load() {
+        var fs = require("fs");
+        let stats = fs.statSync(`qlearning_temp`);
+        let file = fs.openSync(`qlearning_temp`, 'r');
+        let buffer = new Buffer.alloc(stats.size);
+        fs.readSync(file, buffer, 0, stats.size);
+        let qtablelist = JSON.parse(buffer);
+        fs.closeSync(file);
+
+        let QTable = new Map();
+        qtablelist.forEach(item => {
+            QTable.set(item.s, item.v);
+        });
+        let agent = new Agent();
+        agent.QTable = QTable;
+        return agent;
+    }
+
 }
 
 module.exports = Agent;

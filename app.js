@@ -59,17 +59,21 @@
 // Gobang.Save(`gobang`);
 
 let NeuralNetwork = require(`./NeuralNetwork`);
-let neuralNetwork = new NeuralNetwork(36, 36, 36);
+//let neuralNetwork = new NeuralNetwork(36, 36, 36);
+let neuralNetwork = NeuralNetwork.Load(`gobang6-6`);
 
 let Agent = require(`./QLearning`);
 let agent = new Agent;
+//let agent = Agent.Load();
 
 let Game = require(`./Gobang`);
 let game = new Game;
 
 function Epoch(count) {
     for (let n = 0; n < count; n++) {
-        let { gameStep, winType } = game.Generate();
+        //let { gameStep, winType } = game.GenerateRandom();
+        let { gameStep, winType } = game.GenerateNeural(neuralNetwork);
+        //let { gameStep, winType } = game.GenerateQTable(agent.QTable);
 
         // 平局不参与计算
         if (winType === 0) {
@@ -103,27 +107,23 @@ function Epoch(count) {
             }
         }
 
-        steps.forEach(item => {
-            agent.Update(item);
+        steps.forEach(step => agent.Update(step));
+
+        steps.forEach((step, idx) => {
+            console.log(`step:${idx}`);
+            game.Print(step);
         });
-
-        // steps.forEach((step, idx) => {
-        //     console.log(`step:${idx}`);
-        //     game.Print(step);
-        // });
     }
-
-    let samples = agent.GetBatchs();
-    neuralNetwork.Minibatch(samples);
 }
 
-let saveTime = 1000;
-for (let epoch = 0; epoch < 10000000; epoch++) {
-    Epoch(100);
-    neuralNetwork.SimplePrint();
-    if (epoch % saveTime === 0) {
-        neuralNetwork.Save(`gobang`);
-    }
+let saveTime = 100;
+for (let epoch = 0; epoch < 1; epoch++) {
+    Epoch(1);
+    // neuralNetwork.Minibatch(agent.GetBatchs());
+    // neuralNetwork.SimplePrint();
+    // if (epoch % saveTime === 0) {
+    //     neuralNetwork.Save(`gobang6-6`);
+    // }
 }
 
 // sometest

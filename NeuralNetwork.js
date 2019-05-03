@@ -180,6 +180,12 @@ class NeuralNetwork {
         this._outputs = value;
     }
 
+    get Results() {
+        this.FeedForward();
+        let lastLayer = this._layers[this._layers.length - 1];
+        return lastLayer.Activations;
+    }
+
     Cost(x, y) {
         return optArray(x, y, (a, b) => {
             let z = a - b;

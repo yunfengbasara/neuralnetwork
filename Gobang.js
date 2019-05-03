@@ -12,6 +12,7 @@ class Game {
         this._curType = 0;
         this._board = [];
         this._order = [];
+        this._explore = 0.1;    // 处于智能体的时候探索概率
     }
 
     Init() {
@@ -28,11 +29,12 @@ class Game {
         for (let n = 0; n < BoardSize ** 2; n++) {
             this._order.push(n);
         }
-        this.Shuffle(this._order);
     }
 
-    Generate() {
+    // 产生随机比赛
+    GenerateRandom() {
         this.Init();
+        this.Shuffle(this._order);
 
         // {state:board, action:index, type:1 -1}
         let gameStep = [];
@@ -57,6 +59,151 @@ class Game {
             this.NextTurn();
         }
         return { gameStep, winType };
+    }
+
+    // 产生智能棋局
+    GenerateNeural(neuralNetwork) {
+        this.Init();
+
+        // {state:board, action:index, type:1 -1}
+        let gameStep = [];
+        let winType = 0;
+
+        let curtype = this.GetCurType();
+        let action = this.GenerateNeuralStep(neuralNetwork, curtype);
+        while (action !== -1) {
+            gameStep.push({
+                state: this._board.slice(),
+                action: action,
+                type: curtype,
+            });
+
+            this._board[action] = curtype;
+
+            if (this.CheckWin(curtype, this.IndexToPos(action))) {
+                winType = curtype;
+                break;
+            }
+
+            this.NextTurn();
+            curtype = this.GetCurType();
+            action = this.GenerateNeuralStep(neuralNetwork, curtype);
+        }
+
+        return { gameStep, winType };
+    }
+
+    GenerateNeuralStep(neuralNetwork, type) {
+        let board = this._board;
+        // 探索概率
+        if (Math.random() < this._explore) {
+            let emptySpace = [];
+            board.forEach((v, index) => v === 0 ? emptySpace.push(index) : 0);
+            if (emptySpace.length === 0) {
+                return -1;
+            }
+            this.Shuffle(emptySpace);
+            return emptySpace[0];
+        }
+
+        // 单边化
+        if (type === -1) {
+            board = this._board.map(s => {
+                if (s === 1) return -1;
+                if (s === -1) return 1;
+                return 0;
+            });
+        }
+        neuralNetwork.Inputs = board;
+        let values = neuralNetwork.Results;
+        let step = -1;
+        let maxV = -Number.MIN_VALUE;
+        values.forEach((v, index) => {
+            if (board[index] !== 0) {
+                return;
+            };
+
+            if (v < maxV) {
+                return;
+            }
+
+            maxV = v;
+            step = index;
+        });
+
+        return step;
+    }
+
+    GenerateQTable(qtable) {
+        this.Init();
+
+        let gameStep = [];
+        let winType = 0;
+
+        let curtype = this.GetCurType();
+        let action = this.GenerateQTableStep(qtable, curtype);
+        while (action !== -1) {
+            gameStep.push({
+                state: this._board.slice(),
+                action: action,
+                type: curtype,
+            });
+
+            this._board[action] = curtype;
+
+            if (this.CheckWin(curtype, this.IndexToPos(action))) {
+                winType = curtype;
+                break;
+            }
+
+            this.NextTurn();
+            curtype = this.GetCurType();
+            action = this.GenerateQTableStep(qtable, curtype);
+        }
+
+        return { gameStep, winType };
+    }
+
+    GenerateQTableStep(qtable, type) {
+        let board = this._board;
+        if (type === -1) {
+            board = this._board.map(s => {
+                if (s === 1) return -1;
+                if (s === -1) return 1;
+                return 0;
+            });
+        }
+
+        let state = board.join(",");
+        let values = qtable.get(state);
+        if (values === undefined || Math.random() < this._explore) {
+            let emptySpace = [];
+            board.forEach((v, index) => v === 0 ? emptySpace.push(index) : 0);
+            if (emptySpace.length === 0) {
+                return -1;
+            }
+            this.Shuffle(emptySpace);
+            return emptySpace[0];
+        }
+
+        let step = -1;
+        let maxV = -Number.MAX_VALUE;
+        values.forEach((v, index) => {
+            if (board[index] !== 0) {
+                return;
+            };
+
+            // 给与随机特性
+            let newV = v + Math.random() * 1e-5
+            if (newV < maxV) {
+                return;
+            }
+
+            maxV = newV;
+            step = index;
+        });
+
+        return step;
     }
 
     PrintResult() {
