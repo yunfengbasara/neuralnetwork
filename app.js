@@ -63,17 +63,17 @@ let NeuralNetwork = require(`./NeuralNetwork`);
 let neuralNetwork = NeuralNetwork.Load(`gobang6-6`);
 
 let Agent = require(`./QLearning`);
-let agent = new Agent;
-//let agent = Agent.Load();
+let agent = new Agent(neuralNetwork);
+//let agent = Agent.Load(neuralNetwork);
 
 let Game = require(`./Gobang`);
-let game = new Game;
+let game = new Game(agent, neuralNetwork);
 
 function Epoch(count) {
     for (let n = 0; n < count; n++) {
         //let { gameStep, winType } = game.GenerateRandom();
-        let { gameStep, winType } = game.GenerateNeural(neuralNetwork);
-        //let { gameStep, winType } = game.GenerateQTable(agent.QTable);
+        //let { gameStep, winType } = game.GenerateNeural();
+        let { gameStep, winType } = game.GenerateAgent();
 
         // 平局不参与计算
         if (winType === 0) {
@@ -94,18 +94,20 @@ function Epoch(count) {
         });
 
         // 设置该局得分
-        let winReward = 1;
-        let loseReward = -1;
-        for (let reidx = steps.length - 1, bWin = true;
-            reidx >= 0; reidx-- , bWin = !bWin) {
-            if (bWin) {
-                steps[reidx].reward = winReward;
-                winReward *= 0.45;
-            } else {
-                steps[reidx].reward = loseReward;
-                loseReward *= 0.45;
-            }
-        }
+        // let winReward = 1;
+        // let loseReward = -1;
+        // for (let reidx = steps.length - 1, bWin = true;
+        //     reidx >= 0; reidx-- , bWin = !bWin) {
+        //     if (bWin) {
+        //         steps[reidx].reward = winReward;
+        //         winReward *= 0.45;
+        //     } else {
+        //         steps[reidx].reward = loseReward;
+        //         loseReward *= 0.45;
+        //     }
+        // }
+        steps[steps.length - 1].reward = 1;
+        steps[steps.length - 2].reward = -1;
 
         steps.forEach(step => agent.Update(step));
 
@@ -117,14 +119,81 @@ function Epoch(count) {
 }
 
 let saveTime = 100;
-for (let epoch = 0; epoch < 1; epoch++) {
-    Epoch(1);
-    // neuralNetwork.Minibatch(agent.GetBatchs());
-    // neuralNetwork.SimplePrint();
-    // if (epoch % saveTime === 0) {
-    //     neuralNetwork.Save(`gobang6-6`);
-    // }
+for (let epoch = 0; epoch < 100000; epoch++) {
+    // 产生样本
+    Epoch(100);
+
+    // 训练
+    neuralNetwork.Minibatch(agent.GetBatchs());
+    neuralNetwork.SimplePrint();
+
+    // 保存
+    if (epoch % saveTime === 0) {
+        neuralNetwork.Save(`gobang6-6`);
+        //agent.Save();
+    }
 }
+
+const readline = require('readline');
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+function GameStart() {
+    let gameStartInfo = `1.your first\r\n2.computer first\r\n3.roll game\r\n4.exit game\r\ninput 1-4:`;
+    rl.question(gameStartInfo, turn => {
+        switch (turn.trim()) {
+            case '1':
+            case '2':
+            case '3':
+                game.NewGame(turn.trim());
+                break;
+            case '4':
+            default:
+                rl.close();
+                break;
+        }
+        rl.prompt();
+    });
+}
+
+function GameLoop() {
+    rl.on('line', action => {
+        let result = game.HumanInput(action);
+        if (result === `human`) {
+            console.log("human win");
+            GameStart();
+            return;
+        }
+
+        result = game.ComputerInput();
+        if (result === `nowin`) {
+            rl.prompt();
+            return;
+        }
+
+        if (result === `computer`) {
+            console.log("computer win");
+            GameStart();
+            return;
+        }
+
+        if (result === `draw game`) {
+            console.log("draw game");
+            GameStart();
+            return;
+        }
+    });
+
+    rl.on('close', function () {
+        console.log(`exit game`);
+        process.exit(0);
+    });
+}
+
+GameStart();
+GameLoop();
 
 // sometest
 // 精确控制神经网络参数，便于测试

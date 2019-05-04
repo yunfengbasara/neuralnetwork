@@ -7,12 +7,60 @@ const BoardSize = 6;
 const WinCount = 4;
 
 class Game {
-    constructor() {
+    constructor(agent, neural) {
         this._type = [1, -1];
         this._curType = 0;
         this._board = [];
         this._order = [];
         this._explore = 0.1;    // 处于智能体的时候探索概率
+        this._agent = agent;
+        this._neural = neural;
+    }
+
+    NewGame(turn) {
+        this.Init();
+        switch (turn) {
+            case `1`: this._type = [1, -1]; break;
+            case `2`: this._type = [-1, 1]; break;
+            case `3`: this.Shuffle(this._type); break;
+        }
+
+        if (this.GetCurType() === -1) {
+            this.ComputerInput();
+        } else {
+            this.PrintResult();
+        }
+    }
+
+    HumanInput(pos) {
+        // a1 = 0
+        let alpha = ['a', 'b', 'c', 'd', 'e', 'f'];
+        let posary = pos.split("");
+        let row = alpha.findIndex(n => n == posary[0]);
+        let action = row * BoardSize + parseInt(posary[1] - 1);
+        let curtype = this.GetCurType();
+        this._board[action] = curtype;
+        this.PrintResult();
+        this.NextTurn();
+        if (this.CheckWin(curtype, this.IndexToPos(action))) {
+            return "human";
+        }
+        return "nowin";
+    }
+
+    ComputerInput() {
+        let curtype = this.GetCurType();
+        let action = this.GenerateNeuralStep(curtype);
+        if (action === -1) {
+            return "draw game";
+        }
+        this._board[action] = curtype;
+        this.PrintResult();
+        this.NextTurn();
+        if (this.CheckWin(curtype, this.IndexToPos(action))) {
+            return "computer";
+        }
+        return "nowin";
     }
 
     Init() {
@@ -61,8 +109,8 @@ class Game {
         return { gameStep, winType };
     }
 
-    // 产生智能棋局
-    GenerateNeural(neuralNetwork) {
+    // 根据神经网络产生智能棋局
+    GenerateNeural() {
         this.Init();
 
         // {state:board, action:index, type:1 -1}
@@ -70,7 +118,7 @@ class Game {
         let winType = 0;
 
         let curtype = this.GetCurType();
-        let action = this.GenerateNeuralStep(neuralNetwork, curtype);
+        let action = this.GenerateNeuralStep(curtype);
         while (action !== -1) {
             gameStep.push({
                 state: this._board.slice(),
@@ -87,13 +135,14 @@ class Game {
 
             this.NextTurn();
             curtype = this.GetCurType();
-            action = this.GenerateNeuralStep(neuralNetwork, curtype);
+            action = this.GenerateNeuralStep(curtype);
         }
 
         return { gameStep, winType };
     }
 
-    GenerateNeuralStep(neuralNetwork, type) {
+    // 根据神经网络选择最优一步
+    GenerateNeuralStep(type) {
         let board = this._board;
         // 探索概率
         if (Math.random() < this._explore) {
@@ -114,34 +163,20 @@ class Game {
                 return 0;
             });
         }
-        neuralNetwork.Inputs = board;
-        let values = neuralNetwork.Results;
-        let step = -1;
-        let maxV = -Number.MIN_VALUE;
-        values.forEach((v, index) => {
-            if (board[index] !== 0) {
-                return;
-            };
-
-            if (v < maxV) {
-                return;
-            }
-
-            maxV = v;
-            step = index;
-        });
-
-        return step;
+        this._neural.Inputs = board;
+        let values = this._neural.Results;
+        return this.OptimizationStep(values, board);
     }
 
-    GenerateQTable(qtable) {
+    // 根据QTable产生智能棋局
+    GenerateAgent() {
         this.Init();
 
         let gameStep = [];
         let winType = 0;
 
         let curtype = this.GetCurType();
-        let action = this.GenerateQTableStep(qtable, curtype);
+        let action = this.GenerateAgentStep(curtype);
         while (action !== -1) {
             gameStep.push({
                 state: this._board.slice(),
@@ -158,25 +193,17 @@ class Game {
 
             this.NextTurn();
             curtype = this.GetCurType();
-            action = this.GenerateQTableStep(qtable, curtype);
+            action = this.GenerateAgentStep(curtype);
         }
 
         return { gameStep, winType };
     }
 
-    GenerateQTableStep(qtable, type) {
+    // 根据QTable选择最优一步
+    GenerateAgentStep(type) {
         let board = this._board;
-        if (type === -1) {
-            board = this._board.map(s => {
-                if (s === 1) return -1;
-                if (s === -1) return 1;
-                return 0;
-            });
-        }
-
-        let state = board.join(",");
-        let values = qtable.get(state);
-        if (values === undefined || Math.random() < this._explore) {
+        // 探索概率
+        if (Math.random() < this._explore) {
             let emptySpace = [];
             board.forEach((v, index) => v === 0 ? emptySpace.push(index) : 0);
             if (emptySpace.length === 0) {
@@ -186,6 +213,28 @@ class Game {
             return emptySpace[0];
         }
 
+        // 单边化
+        if (type === -1) {
+            board = this._board.map(s => {
+                if (s === 1) return -1;
+                if (s === -1) return 1;
+                return 0;
+            });
+        }
+
+        let state = board.join(",");
+        let values = this._agent.QTable.get(state);
+        // 如果q表没找到,从神经网络中生成
+        if (values === undefined) {
+            this._neural.Inputs = board;
+            values = this._neural.Results;
+        }
+
+        return this.OptimizationStep(values, board);
+    }
+
+    // 找到最佳一步
+    OptimizationStep(values, board) {
         let step = -1;
         let maxV = -Number.MAX_VALUE;
         values.forEach((v, index) => {
@@ -202,16 +251,22 @@ class Game {
             maxV = newV;
             step = index;
         });
-
         return step;
     }
 
     PrintResult() {
-        let board = "";
+        let alpha = ['a', 'b', 'c', 'd', 'e', 'f'];
+        let board = "   1 2 3 4 5 6\r\n";
         this._board.forEach((type, idx) => {
             if (idx !== 0 && idx % BoardSize === 0) {
-                board += "|\r\n";
+                board += `|\r\n`;
             }
+
+            if (idx % BoardSize === 0) {
+                let index = Math.floor(idx / BoardSize);
+                board += `${alpha[index]} `;
+            }
+
             switch (type) {
                 case 0: board += `| `; break;
                 case 1: board += `|○`; break;

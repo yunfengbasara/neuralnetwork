@@ -1,6 +1,6 @@
 class Agent {
     // 默认我方1 对方-1，每次的行动都是1
-    constructor() {
+    constructor(neural) {
         this._memorySize = 100000;   // Q表总大小
         this._cacheSize = 5000;      // 缓冲空间
         this._batch = 100;           // 获取样本间隔
@@ -9,6 +9,7 @@ class Agent {
         this._lambda = 0.95;
         this._min = -1;              // 归一化处理
         this._max = 1;
+        this._neural = neural;
     }
 
     get QTable() { return this._QTable; }
@@ -44,8 +45,21 @@ class Agent {
     UpdateQTable(s, a, r) {
         let stateStr = s.join(",");
         let values = s.map(() => 0);
+        // 从Q表中获取
         if (this._QTable.has(stateStr)) {
             values = this._QTable.get(stateStr);
+        }
+        // 从神经网路中获取
+        else {
+            this._neural.Inputs = s;
+            values = this._neural.Results;
+            let sep = this._max - this._min;
+            values = values.map((v, index) => {
+                if (s[index] !== 0) {
+                    return 0;
+                }
+                return v * sep + this._min;
+            });
         }
 
         let nState = s.slice();
@@ -119,7 +133,7 @@ class Agent {
         fs.closeSync(file);
     }
 
-    static Load() {
+    static Load(neural) {
         var fs = require("fs");
         let stats = fs.statSync(`qlearning_temp`);
         let file = fs.openSync(`qlearning_temp`, 'r');
@@ -132,7 +146,7 @@ class Agent {
         qtablelist.forEach(item => {
             QTable.set(item.s, item.v);
         });
-        let agent = new Agent();
+        let agent = new Agent(neural);
         agent.QTable = QTable;
         return agent;
     }
