@@ -15,14 +15,10 @@ class Agent {
     get QTable() { return this._QTable; }
     set QTable(qtable) { this._QTable = qtable; }
 
-    FindMaxQValue(state) {
-        let values = this._QTable.get(state);
-        if (values === undefined) {
-            return 0;
-        }
-
-        let states = state.split(",");
-        let tmpvalues = values.filter((_, index) => states[index] == "0");
+    FindMaxQValue(s) {
+        let values = this.GetValues(s);
+        // 没有棋子的位置计算value
+        let tmpvalues = values.filter((_, i) => s[i] === 0);
         return Math.max(...tmpvalues);
     }
 
@@ -42,40 +38,47 @@ class Agent {
         }
     }
 
-    UpdateQTable(s, a, r) {
-        let stateStr = s.join(",");
-        let values = s.map(() => 0);
+    // 从Q表或者神经网络中获取values
+    GetValues(stateArray) {
         // 从Q表中获取
+        let stateStr = stateArray.join(',');
         if (this._QTable.has(stateStr)) {
-            values = this._QTable.get(stateStr);
-        }
-        // 从神经网路中获取
-        else {
-            this._neural.Inputs = s;
-            values = this._neural.Results;
-            let sep = this._max - this._min;
-            values = values.map((v, index) => {
-                if (s[index] !== 0) {
-                    return 0;
-                }
-                return v * sep + this._min;
-            });
+            return this._QTable.get(stateStr);
         }
 
-        let nState = s.slice();
-        nState[a] = 1;
-        nState = nState.map(a => {
+        // 从神经网路中获取
+        this._neural.Inputs = stateArray;
+        let values = this._neural.Results;
+
+        // 神经网络数据还原
+        let sep = this._max - this._min;
+        values = values.map((v, index) => {
+            if (stateArray[index] !== 0) {
+                return 0;
+            }
+            return v * sep + this._min;
+        });
+        return values;
+    }
+
+    UpdateQTable(s, a, r) {
+        // 下一步状态，单边化处理
+        let nexts = s.slice();
+        nexts[a] = 1;
+        nexts = nexts.map(a => {
             if (a === -1) return 1;
             if (a === 1) return -1;
             return 0;
         });
 
-        let nStateStr = nState.join(",");
-        let nMaxValue = this.FindMaxQValue(nStateStr);
-        if (nMaxValue === 0 && r === 0 && values[a] === 0) {
-            return;
+        let values = this.GetValues(s);
+        let nMaxValue = 0;
+        // 如果不是棋局的最后一步，就会有下一个状态
+        if (r === 0) {
+            nMaxValue = this.FindMaxQValue(nexts);
         }
 
+        // 下一步是对方走，max-min算法
         nMaxValue = -nMaxValue;
         let reward = this._learnSpeed * (r + this._lambda * nMaxValue);
         values[a] = (1 - this._learnSpeed) * values[a] + reward;
@@ -89,7 +92,7 @@ class Agent {
             values[a] = this._max;
         }
 
-        this._QTable.set(stateStr, values);
+        this._QTable.set(s.join(","), values);
     }
 
     GetBatchs() {
