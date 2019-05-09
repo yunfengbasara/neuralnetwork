@@ -1,3 +1,12 @@
+let MCTS = require(`./MCTS`);
+let mcts = new MCTS();
+mcts.Init(36);
+for (let n = 0; n < 36; n++) {
+    mcts.Run();
+}
+mcts.Print();
+return;
+
 let NeuralNetwork = require(`./NeuralNetwork`);
 //let neuralNetwork = new NeuralNetwork(36, 36, 36);
 let neuralNetwork = NeuralNetwork.Load(`gobang6-6`);
