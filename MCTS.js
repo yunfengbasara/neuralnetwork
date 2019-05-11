@@ -18,6 +18,7 @@ class Node {
     get Parent() { return this._parent; }
     get Children() { return this._children; }
     get UnExpands() { return this._unExpands; }
+    get IsLeaf() { return this._children.length === 0; }    // 是否叶子节点
 
     set Win(v) { this._win = v; }
     set Total(v) { this._total = v; }
@@ -47,6 +48,7 @@ class Node {
     }
 
     Selection() {
+        // 优先扩展
         if (this._unExpands.length !== 0) {
             return this.Expansion();
         }
@@ -65,6 +67,11 @@ class Node {
     }
 
     SelectMaxValue() {
+        // 如果该节点为叶节点，返回本身
+        if (this._children.length === 0) {
+            return this;
+        }
+
         let maxValue = 0;
         let selecNode = {};
         this._children.forEach(n => {
@@ -98,45 +105,54 @@ class Node {
 
 // Monte Carlo Tree Search with UCB
 class MCTS {
-    constructor() {
-        this._root = {};
-        this._nextWin = false;  // 隔层设置胜负
-    }
-
-    Init(size) {
+    constructor(game) {
         this._root = new Node();
-        for (let index = 0; index < size; index++) {
+        this._nextWin = false;  // 隔层设置胜负
+        this._game = game;
+        for (let index = 0; index < game.BoardSize; index++) {
             this._root.UnExpands.push(index);
         }
     }
 
+    get Root() { return this._root; }
+
     Run() {
-        let { node, line } = this.Selection();
-        this.Simulation(node);
+        let node = this.Selection();
+        let actions = this.GetActions(node);
+        this.Simulation(node, actions);
         this.Backpropagation(node);
     }
 
-    SelectMaxValue() {
-        return this._root.SelectMaxValue();
+    GetActions(node) {
+        let actions = [node.Index];
+        while (node.Parent !== this._root) {
+            node = node.Parent;
+            actions.push(node.Index);
+        }
+        return actions;
     }
 
     Selection() {
-        let line = [];
         let node = this._root.Selection();
-        line.push(node.Index);
         while (node.Total !== 0) {
             node = node.Selection();
-            line.push(node.Index);
         }
-        return { node, line };
+        return node;
     }
 
-    Simulation(node) {
+    Simulation(node, actions) {
+        // 该节点尝试总数+1
         node.Total++;
-        if (Math.floor(Math.random() * 2)) {
+        // 模拟返回胜利类型
+        let winType = this._game.Simulation(actions);
+        // 当前节点类型
+        let curType = [1, -1][actions.length - 1 % 2];
+        // 模拟结果是当前节点胜利
+        if (winType === curType) {
             this._nextWin = false;
             node.Win++;
-        } else {
+        }
+        else {
             this._nextWin = true;
         }
     }
@@ -152,21 +168,16 @@ class MCTS {
     }
 
     Print() {
-        // let { node, line } = this.Selection();
-        // let expands = node.Children.map(n => n.Index);
-        // let unexpands = node.UnExpands.slice();
-        // console.log(`expands:${expands}`);
-        // console.log(`unexpands:${unexpands}`);
-        // console.log(`line:${line}`);
+        // let node = this._root.SelectMaxValue();
+        // while (!node.IsLeaf) {
+        //     node = node.SelectMaxValue();
+        // }
         // console.log(`index:${node.Index}`);
         // console.log(`win/total:${node.Win}/${node.Total}`);
 
-        // let parent = node.Parent;
-        // while (parent !== null) {
-        //     console.log(`index:${parent.Index}`);
-        //     console.log(`win/total:${parent.Win}/${parent.Total}`);
-        //     parent = parent.Parent;
-        // }
+        // let line = this.GetLine(node);
+        // console.log(`line:${line}`);
+        this._game.PrintResult();
     }
 }
 

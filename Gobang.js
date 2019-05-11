@@ -12,10 +12,12 @@ class Game {
         this._curType = 0;
         this._board = [];
         this._order = [];
-        this._explore = 0.1;    // 处于智能体的时候探索概率
+        this._explore = 0.08;    // 处于智能体的时候探索概率
         this._agent = agent;
         this._neural = neural;
     }
+
+    get BoardSize() { return BoardSize ** 2; }
 
     NewGame(turn) {
         this.Init();
@@ -252,6 +254,36 @@ class Game {
             step = index;
         });
         return step;
+    }
+
+    // 根据MCTS模拟棋局
+    Simulation(actions) {
+        this._board = [];
+        for (let n = 0; n < BoardSize ** 2; n++) {
+            this._board.push(0);
+        }
+        let type = 1; // 1 -1 交替
+        // 填充
+        actions.forEach(action => {
+            this._board[action] = type;
+            type = type === 1 ? -1 : 1;
+        })
+
+        // 模拟
+        let winType = 0;
+        let action = this.GenerateNeuralStep(type);
+        while (action !== -1) {
+            this._board[action] = type;
+
+            if (this.CheckWin(type, this.IndexToPos(action))) {
+                winType = type;
+                break;
+            }
+
+            type = type === 1 ? -1 : 1;
+            action = this.GenerateNeuralStep(type);
+        }
+        return winType;
     }
 
     PrintResult() {

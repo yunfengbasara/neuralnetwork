@@ -1,12 +1,3 @@
-let MCTS = require(`./MCTS`);
-let mcts = new MCTS();
-mcts.Init(36);
-for (let n = 0; n < 36; n++) {
-    mcts.Run();
-}
-mcts.Print();
-return;
-
 let NeuralNetwork = require(`./NeuralNetwork`);
 //let neuralNetwork = new NeuralNetwork(36, 36, 36);
 let neuralNetwork = NeuralNetwork.Load(`gobang6-6`);
@@ -17,6 +8,14 @@ let agent = new Agent(neuralNetwork);
 
 let Game = require(`./Gobang`);
 let game = new Game(agent, neuralNetwork);
+
+let MCTS = require(`./MCTS`);
+let mcts = new MCTS(game);
+for (let n = 0; n < 1; n++) {
+    mcts.Run();
+}
+mcts.Print();
+return;
 
 function Epoch(count) {
     for (let n = 0; n < count; n++) {
