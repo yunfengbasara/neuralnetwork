@@ -9,19 +9,12 @@ let agent = new Agent(neuralNetwork);
 let Game = require(`./Gobang`);
 let game = new Game(agent, neuralNetwork);
 
-let MCTS = require(`./MCTS`);
-let mcts = new MCTS(game);
-for (let n = 0; n < 1; n++) {
-    mcts.Run();
-}
-mcts.Print();
-return;
-
 function Epoch(count) {
     for (let n = 0; n < count; n++) {
         //let { gameStep, winType } = game.GenerateRandom();
         //let { gameStep, winType } = game.GenerateNeural();
-        let { gameStep, winType } = game.GenerateAgent();
+        //let { gameStep, winType } = game.GenerateAgent();
+        let { gameStep, winType } = game.GenerateMCTS();
 
         // 单边化处理
         let steps = gameStep.map(item => {
@@ -60,7 +53,7 @@ function Epoch(count) {
         }
 
         // 更新Qtable
-        steps.forEach(step => agent.Update(step));
+        //steps.forEach(step => agent.Update(step));
 
         // 打印最后一步
         // if (n % 100 === 0) {
@@ -79,83 +72,86 @@ function Epoch(count) {
     }
 }
 
-let saveTime = 100;
-for (let epoch = 0; epoch < 100000; epoch++) {
-    // 产生样本
-    Epoch(100);
+Epoch(1);
+return;
 
-    // 训练
-    neuralNetwork.Minibatch(agent.GetBatchs());
-    neuralNetwork.SimplePrint();
+// let saveTime = 100;
+// for (let epoch = 0; epoch < 100000; epoch++) {
+//     // 产生样本
+//     Epoch(100);
 
-    // 保存
-    if (epoch % saveTime === 0) {
-        neuralNetwork.Save(`gobang6-6`);
-    }
-}
+//     // 训练
+//     neuralNetwork.Minibatch(agent.GetBatchs());
+//     neuralNetwork.SimplePrint();
+
+//     // 保存
+//     if (epoch % saveTime === 0) {
+//         neuralNetwork.Save(`gobang6-6`);
+//     }
+// }
 
 ////////////////////////////////////////////////////
 // 命令行人机对战部分
-// const readline = require('readline');
-// const rl = readline.createInterface({
-//     input: process.stdin,
-//     output: process.stdout
-// });
+const readline = require('readline');
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
 
-// function GameStart() {
-//     let gameStartInfo = `1.your first\r\n2.computer first\r\n3.roll game\r\n4.exit game\r\ninput 1-4:`;
-//     rl.question(gameStartInfo, turn => {
-//         switch (turn.trim()) {
-//             case '1':
-//             case '2':
-//             case '3':
-//                 game.NewGame(turn.trim());
-//                 break;
-//             case '4':
-//             default:
-//                 rl.close();
-//                 break;
-//         }
-//         rl.prompt();
-//     });
-// }
+function GameStart() {
+    let gameStartInfo = `1.your first\r\n2.computer first\r\n3.roll game\r\n4.exit game\r\ninput 1-4:`;
+    rl.question(gameStartInfo, turn => {
+        switch (turn.trim()) {
+            case '1':
+            case '2':
+            case '3':
+                game.NewGame(turn.trim());
+                break;
+            case '4':
+            default:
+                rl.close();
+                break;
+        }
+        rl.prompt();
+    });
+}
 
-// function GameLoop() {
-//     rl.on('line', action => {
-//         let result = game.HumanInput(action);
-//         if (result === `human`) {
-//             console.log("human win");
-//             GameStart();
-//             return;
-//         }
+function GameLoop() {
+    rl.on('line', action => {
+        let result = game.HumanInput(action);
+        if (result === `human`) {
+            console.log("human win");
+            GameStart();
+            return;
+        }
 
-//         result = game.ComputerInput();
-//         if (result === `nowin`) {
-//             rl.prompt();
-//             return;
-//         }
+        result = game.ComputerInput();
+        if (result === `nowin`) {
+            rl.prompt();
+            return;
+        }
 
-//         if (result === `computer`) {
-//             console.log("computer win");
-//             GameStart();
-//             return;
-//         }
+        if (result === `computer`) {
+            console.log("computer win");
+            GameStart();
+            return;
+        }
 
-//         if (result === `draw game`) {
-//             console.log("draw game");
-//             GameStart();
-//             return;
-//         }
-//     });
+        if (result === `draw game`) {
+            console.log("draw game");
+            GameStart();
+            return;
+        }
+    });
 
-//     rl.on('close', function () {
-//         console.log(`exit game`);
-//         process.exit(0);
-//     });
-// }
+    rl.on('close', function () {
+        console.log(`exit game`);
+        process.exit(0);
+    });
+}
 
-// GameStart();
-// GameLoop();
+GameStart();
+GameLoop();
 
 ////////////////////////////////////////////////////
 // 神经网络测试

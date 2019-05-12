@@ -1,3 +1,4 @@
+let MCTS = require(`./MCTS`);
 // Gobang rule
 
 // board size 6 * 6
@@ -15,11 +16,13 @@ class Game {
         this._explore = 0.08;    // 处于智能体的时候探索概率
         this._agent = agent;
         this._neural = neural;
+        this._mcts = null;
     }
 
     get BoardSize() { return BoardSize ** 2; }
-
     NewGame(turn) {
+        this._mcts = new MCTS(this);
+        this._mcts.Simulate();
         this.Init();
         switch (turn) {
             case `1`: this._type = [1, -1]; break;
@@ -42,6 +45,7 @@ class Game {
         let action = row * BoardSize + parseInt(posary[1] - 1);
         let curtype = this.GetCurType();
         this._board[action] = curtype;
+        this._mcts.SetCurrentNode(action);
         this.PrintResult();
         this.NextTurn();
         if (this.CheckWin(curtype, this.IndexToPos(action))) {
@@ -52,7 +56,8 @@ class Game {
 
     ComputerInput() {
         let curtype = this.GetCurType();
-        let action = this.GenerateNeuralStep(curtype);
+        //let action = this.GenerateNeuralStep(curtype);
+        let action = this.GenerateMCTSStep();
         if (action === -1) {
             return "draw game";
         }
@@ -235,6 +240,55 @@ class Game {
         return this.OptimizationStep(values, board);
     }
 
+    // 根据MCTS产生智能棋局
+    GenerateMCTS() {
+        this._mcts = new MCTS(this);
+        this.Init();
+
+        let gameStep = [];
+        let winType = 0;
+
+        let curtype = this.GetCurType();
+        let action = this.GenerateMCTSStep();
+        while (action !== -1) {
+            gameStep.push({
+                state: this._board.slice(),
+                action: action,
+                type: curtype,
+            });
+
+            console.log(`step:${gameStep.length}`);
+            this.Print(gameStep[gameStep.length - 1]);
+
+            this._board[action] = curtype;
+
+            if (this.CheckWin(curtype, this.IndexToPos(action))) {
+                winType = curtype;
+                break;
+            }
+
+            this.NextTurn();
+            curtype = this.GetCurType();
+            action = this.GenerateMCTSStep();
+        }
+
+        return { gameStep, winType };
+    }
+
+    GenerateMCTSStep() {
+        // mcts模拟过程中会改变棋盘
+        let tempBoard = this._board.slice();
+        this._mcts.Simulate();
+        //this._mcts.Print();
+        this._board = tempBoard;
+
+        let action = this._mcts.SelectMaxValue();
+        if (this._mcts.SetCurrentNode(action)) {
+            return action;
+        }
+        return -1;
+    }
+
     // 找到最佳一步
     OptimizationStep(values, board) {
         let step = -1;
@@ -256,34 +310,79 @@ class Game {
         return step;
     }
 
-    // 根据MCTS模拟棋局
-    Simulation(actions) {
+    // 检查棋局是否结束
+    CheckActions(actions) {
         this._board = [];
         for (let n = 0; n < BoardSize ** 2; n++) {
             this._board.push(0);
         }
+
+        let winType = 0;
         let type = 1; // 1 -1 交替
+
         // 填充
         actions.forEach(action => {
             this._board[action] = type;
             type = type === 1 ? -1 : 1;
-        })
+        });
 
-        // 模拟
-        let winType = 0;
+        if (actions.length === 0) {
+            return { winType, type };
+        }
+
+        // 如果已经有一方获胜
+        let lastAction = actions[actions.length - 1];
+        let lastType = type === 1 ? -1 : 1; // 上一把
+        if (this.CheckWin(lastType, this.IndexToPos(lastAction))) {
+            winType = lastType;
+            return { winType, type };
+        }
+
+        return { winType, type };
+    }
+
+    // 根据MCTS模拟棋局
+    Simulation(actions) {
+        let { winType, type } = this.CheckActions(actions);
+        if (winType !== 0) {
+            return { win: winType, end: true };
+        }
+
+        // 神经网络走棋模拟
         let action = this.GenerateNeuralStep(type);
         while (action !== -1) {
             this._board[action] = type;
 
             if (this.CheckWin(type, this.IndexToPos(action))) {
-                winType = type;
-                break;
+                return { win: type, end: false };
             }
 
             type = type === 1 ? -1 : 1;
             action = this.GenerateNeuralStep(type);
         }
-        return winType;
+        return { win: 0, end: false };
+
+        // 随机走棋模拟
+        this._order = [];
+        this._board.forEach((n, index) => {
+            if (n === 0) {
+                this._order.push(index);
+            }
+        });
+
+        this.Shuffle(this._order);
+        for (let n = 0; n < this._order.length; n++) {
+            let action = this._order[n];
+
+            this._board[action] = type;
+
+            if (this.CheckWin(type, this.IndexToPos(action))) {
+                return { win: type, end: false };
+            }
+
+            type = type === 1 ? -1 : 1;
+        }
+        return { win: 0, end: false };
     }
 
     PrintResult() {
