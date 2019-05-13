@@ -100,19 +100,22 @@ class Node {
     }
 
     Expansion() {
-        let index = this._unExpands.pop();
+        // 采用随机扩展比较高的概率获得最优值
+        let randomIndex = Math.floor(Math.random() * this._unExpands.length);
+        let index = this._unExpands[randomIndex];
+        this._unExpands.splice(randomIndex, 1);
+
         let child = new Node();
         child.Index = index;
         child.Parent = this;
-        child.UnExpands = this.GetUnExpands(index);
+        child.UnExpands = this.GetUnExpands();
         this._children.push(child);
         return child;
     }
 
-    GetUnExpands(index) {
-        let unExpands = this._unExpands.filter(n => n !== index);
+    GetUnExpands() {
         let childrenIndex = this._children.map(c => c.Index);
-        return unExpands.concat(childrenIndex);
+        return this._unExpands.concat(childrenIndex);
     }
 }
 
@@ -123,10 +126,11 @@ class MCTS {
         this._game = game;
         this._root = new Node();
         for (let n = 0; n < game.BoardSize; n++) {
+            //if (n === 34 || n === 33) continue;
             this._root.UnExpands.push(n);
         }
         this._curNode = this._root;
-        this._tryTimes = 3600;
+        this._tryTimes = 36 * 36 * 36;
         this._totalNodes = 0;
     }
 
@@ -147,6 +151,11 @@ class MCTS {
         for (let n = 0; n < this._tryTimes; n++) {
             let { node, isNew } = this.Selection(this._curNode);
             let actions = this.GetActions(node);
+            // if (actions.length === 3) {
+            //     if (actions[0] === 32 && actions[1] === 31 && actions[2] === 35) {
+            //         let i = 0;
+            //     }
+            // }
             this.Simulation(node, actions);
             this.Backpropagation(node);
 
@@ -200,7 +209,7 @@ class MCTS {
         let parent = node.Parent;
         while (parent !== null) {
             parent.Total++;
-            this._nextWin ? 0 : parent.Win++;
+            this._nextWin ? parent.Win++ : 0;
             this._nextWin = !this._nextWin;
             parent = parent.Parent;
         }
@@ -210,10 +219,20 @@ class MCTS {
         console.log(this._totalNodes);
         console.log(`current_index:${this._curNode.Index}`);
         console.log(`current_win/total:${this._curNode.Win}/${this._curNode.Total}`);
-        this._curNode.Children.forEach(node => {
-            console.log(`index:${node.Index}`);
-            console.log(`win/total:${node.Win}/${node.Total}`);
-        });
+        let details = this._curNode.Children.map(n => `${n.Index}(${n.Win}/${n.Total})`);
+        console.log(`- ${details.join(';')}`);
+
+        // this.SetCurrentNode(31);
+        // console.log(`current_index:${this._curNode.Index}`);
+        // console.log(`current_win/total:${this._curNode.Win}/${this._curNode.Total}`);
+        // details = this._curNode.Children.map(n => `${n.Index}(${n.Win}/${n.Total})`);
+        // console.log(`- ${details.join(';')}`);
+
+        // this.SetCurrentNode(32);
+        // console.log(`current_index:${this._curNode.Index}`);
+        // console.log(`current_win/total:${this._curNode.Win}/${this._curNode.Total}`);
+        // details = this._curNode.Children.map(n => `${n.Index}(${n.Win}/${n.Total})`);
+        // console.log(`- ${details.join(';')}`);
     }
 }
 

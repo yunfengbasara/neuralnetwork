@@ -317,6 +317,10 @@ class Game {
             this._board.push(0);
         }
 
+        // test
+        // this._board[34] = 1;
+        // this._board[33] = 1;
+
         let winType = 0;
         let type = 1; // 1 -1 交替
 
