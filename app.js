@@ -72,8 +72,8 @@ function Epoch(count) {
     }
 }
 
-Epoch(1);
-return;
+// Epoch(1);
+// return;
 
 // let saveTime = 100;
 // for (let epoch = 0; epoch < 100000; epoch++) {

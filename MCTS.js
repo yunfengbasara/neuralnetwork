@@ -126,7 +126,8 @@ class MCTS {
         this._game = game;
         this._root = new Node();
         for (let n = 0; n < game.BoardSize; n++) {
-            //if (n === 34 || n === 33) continue;
+            //|| n === 15
+            //if (n === 14 || n === 21) continue;
             this._root.UnExpands.push(n);
         }
         this._curNode = this._root;

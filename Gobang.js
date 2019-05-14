@@ -279,7 +279,7 @@ class Game {
         // mcts模拟过程中会改变棋盘
         let tempBoard = this._board.slice();
         this._mcts.Simulate();
-        //this._mcts.Print();
+        this._mcts.Print();
         this._board = tempBoard;
 
         let action = this._mcts.SelectMaxValue();
@@ -318,8 +318,9 @@ class Game {
         }
 
         // test
-        // this._board[34] = 1;
-        // this._board[33] = 1;
+        // this._board[14] = -1;
+        // this._board[21] = -1;
+        //this._board[15] = 1;
 
         let winType = 0;
         let type = 1; // 1 -1 交替
@@ -352,19 +353,24 @@ class Game {
             return { win: winType, end: true };
         }
 
+        // let lastAction = actions[0];
+        // if (lastAction === 7 || lastAction === 28) {
+        //     return { win: 1, end: false };
+        // }
+
         // 神经网络走棋模拟
-        let action = this.GenerateNeuralStep(type);
-        while (action !== -1) {
-            this._board[action] = type;
+        // let action = this.GenerateNeuralStep(type);
+        // while (action !== -1) {
+        //     this._board[action] = type;
 
-            if (this.CheckWin(type, this.IndexToPos(action))) {
-                return { win: type, end: false };
-            }
+        //     if (this.CheckWin(type, this.IndexToPos(action))) {
+        //         return { win: type, end: false };
+        //     }
 
-            type = type === 1 ? -1 : 1;
-            action = this.GenerateNeuralStep(type);
-        }
-        return { win: 0, end: false };
+        //     type = type === 1 ? -1 : 1;
+        //     action = this.GenerateNeuralStep(type);
+        // }
+        // return { win: 0, end: false };
 
         // 随机走棋模拟
         this._order = [];
