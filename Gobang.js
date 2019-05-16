@@ -320,7 +320,7 @@ class Game {
         // test
         // this._board[14] = -1;
         // this._board[21] = -1;
-        //this._board[15] = 1;
+        //this._board[7] = -1;
 
         let winType = 0;
         let type = 1; // 1 -1 交替
@@ -353,10 +353,10 @@ class Game {
             return { win: winType, end: true };
         }
 
-        // let lastAction = actions[0];
-        // if (lastAction === 7 || lastAction === 28) {
-        //     return { win: 1, end: false };
+        // if (actions[0] !== 7) {
+        //     return { win: -1, end: false };
         // }
+
 
         // 神经网络走棋模拟
         // let action = this.GenerateNeuralStep(type);

@@ -47,15 +47,15 @@ class Node {
             return { node: this.Expansion(), isNew: true };
         }
 
-        // 如果该节点为叶节点
-        if (this._children.length === 0) {
-            return { node: this, isNew: false };
-        }
-
-        // 从子节点中选择一个
         let maxUCB = 0;
         let selecNode = null;
         this._children.forEach(n => {
+            // 已经到达游戏结束的节点不参与计算
+            if (n.Children.length === 0 &&
+                n.UnExpands.length === 0) {
+                return;
+            }
+            // 从子节点中选择一个UCB最大的
             let ucb = n.UCB();
             if (ucb < maxUCB) {
                 return;
@@ -126,7 +126,6 @@ class MCTS {
         this._game = game;
         this._root = new Node();
         for (let n = 0; n < game.BoardSize; n++) {
-            //|| n === 15
             //if (n === 14 || n === 21) continue;
             this._root.UnExpands.push(n);
         }
@@ -151,6 +150,10 @@ class MCTS {
     Simulate() {
         for (let n = 0; n < this._tryTimes; n++) {
             let { node, isNew } = this.Selection(this._curNode);
+            if (node === null) {
+                console.log("MCTS Select null.");
+                continue;
+            }
             let actions = this.GetActions(node);
             // if (actions.length === 3) {
             //     if (actions[0] === 32 && actions[1] === 31 && actions[2] === 35) {
@@ -197,6 +200,7 @@ class MCTS {
             this._nextWin = false;
             node.Win++;
         }
+        // 当前结点输或平局
         else {
             this._nextWin = true;
         }
