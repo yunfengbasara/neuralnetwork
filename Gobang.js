@@ -45,7 +45,7 @@ class Game {
         let action = row * BoardSize + parseInt(posary[1] - 1);
         let curtype = this.GetCurType();
         this._board[action] = curtype;
-        this._mcts.SetCurrentNode(action);
+        this._mcts.SetCurrentIndex(action);
         this.PrintResult();
         this.NextTurn();
         if (this.CheckWin(curtype, this.IndexToPos(action))) {
@@ -282,11 +282,9 @@ class Game {
         this._mcts.Print();
         this._board = tempBoard;
 
-        let action = this._mcts.SelectMaxValue();
-        if (this._mcts.SetCurrentNode(action)) {
-            return action;
-        }
-        return -1;
+        let bestNode = this._mcts.SelectBestNode();
+        this._mcts.SetCurrentNode(bestNode);
+        return bestNode.Index;
     }
 
     // 找到最佳一步
@@ -353,8 +351,8 @@ class Game {
             return { win: winType, end: true };
         }
 
-        // if (actions[0] !== 7) {
-        //     return { win: -1, end: false };
+        // if (actions[0] === 7) {
+        //     return { win: 1, end: false };
         // }
 
 

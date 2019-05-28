@@ -1,121 +1,122 @@
 // weight param
-const Confident = 1.41;
+const Confident = 1 / 1.41;
 
 // Monte Carlo Tree Search Node Desc
 class Node {
-    constructor() {
+    constructor(index, parent) {
         this._win = 0;
-        this._total = 0;
-        this._index = -1;
-        this._parent = null;
+        this._simulations = 0;
+        this._index = index;
+        this._parent = parent;
         this._children = [];
-        this._unExpands = [];
+        this._finish = false;
     }
 
     get Win() { return this._win; }
-    get Total() { return this._total; }
+    get Simulations() { return this._simulations; }
     get Index() { return this._index; }
     get Parent() { return this._parent; }
     get Children() { return this._children; }
-    get UnExpands() { return this._unExpands; }
-    get IsLeaf() { return (this._children.length + this._unExpands.length) === 0; }
-    get Value() { return this._total === 0 ? 0 : this._win / this._total; }
-    get ChildrenCount() { return this._children.length + this._unExpands.length; }
+    get Finish() { return this._finish; }
 
-    set Win(v) { this._win = v; }
-    set Total(v) { this._total = v; }
-    set Index(v) { this._index = v; }
-    set Parent(v) { this._parent = v; }
-    set Children(v) { this._children = v; }
-    set UnExpands(v) { this._unExpands = v; }
+    get WinRate() {
+        if (this._simulations === 0) {
+            return 0;
+        }
+        return this._win / this._simulations;
+    }
 
-    UCB() {
-        if (this._total === 0 ||
-            this._parent === null ||
-            this._parent.Total === 0) {
+    get UCB() {
+        // 如果是未扩展的节点,返回随机数值
+        if (this._simulations === 0) {
             return Math.random() * 1e5;
         }
 
-        let winRate = this._win / this._total;
-        let lambda = Math.sqrt(this._parent.Total / this._total);
+        let winRate = this._win / this._simulations;
+        let lambda = Math.sqrt(Math.log(this._parent.Simulations) / this._simulations);
         return winRate + Confident * lambda;
     }
 
-    Selection() {
-        // 优先扩展
-        if (this._unExpands.length !== 0) {
-            return { node: this.Expansion(), isNew: true };
-        }
+    set Win(v) { this._win = v; }
+    set Simulations(v) { this._simulations = v; }
+    set Index(v) { this._index = v; }
+    set Parent(v) { this._parent = v; }
+    set Children(v) { this._children = v; }
+    set Finish(v) { this._finish = v; }
 
-        let maxUCB = 0;
-        let selecNode = null;
-        this._children.forEach(n => {
-            // 已经到达游戏结束的节点不参与计算
-            if (n.Children.length === 0 &&
-                n.UnExpands.length === 0) {
-                return;
-            }
-            // 从子节点中选择一个UCB最大的
-            let ucb = n.UCB();
-            if (ucb < maxUCB) {
-                return;
-            }
-            maxUCB = ucb;
-            selecNode = n;
-        });
-        return { node: selecNode, isNew: false };
+    SetChildren(indexarray) {
+        this._children = indexarray.map(n => new Node(n, this));
     }
 
-    SelectMaxValue() {
-        // 如果该节点无子节点，返回本身
-        if (this._children.length === 0) {
-            return this._index;
+    BrotherHaveFinish() {
+        if (this._parent === null) {
+            return false;
+        }
+        let finishinode = this._parent.Children.find(n => n.Finish);
+        if (finishinode !== undefined) {
+            return true;
+        }
+        return false;
+    }
+
+    Selection() {
+        // 如果该节点没有模拟
+        if (this._simulations === 0) {
+            return this;
         }
 
-        let selectNode = {};
-        selectNode.Value = 0;
-        selectNode.ChildrenCount = Number.MAX_VALUE;
-        this._children.forEach(n => {
-            if (n.Value < selectNode.Value) {
-                return;
+        // 如果该节点是finish节点
+        if (this._finish) {
+            return this;
+        }
+
+        // 如果该节点没有子节点,扩展阶段
+        if (this._children.length === 0) {
+            // 如果该节点的兄弟节点有finish
+            // 不用扩展,优化mcts剪枝
+            if (this.BrotherHaveFinish()) {
+                return this;
             }
-            // 优先选择可扩展机会少的，意味着终局
-            if (n.ChildrenCount <= selectNode.ChildrenCount) {
+            this.Expand();
+            return this.Selection();
+        }
+
+        // 如果该节点模拟过并且有子节点,递归寻找
+        let selectNode = {};
+        selectNode.UCB = 0;
+        this._children.forEach(n => {
+            if (n.UCB > selectNode.UCB) {
                 selectNode = n;
             }
         });
-        return selectNode.Index;
+        return selectNode.Selection();
     }
 
-    SelectNextNode(index) {
-        if (index === this._index) {
-            return null;
-        }
+    Expand() {
+        // 获取父节点的所有子节点序号
+        let childrenIndex = this._parent.Children.map(c => c.Index);
 
-        let nodes = this._children.filter(n => n.Index === index);
-        if (nodes.length === 0) {
-            return null;
-        }
-        return nodes[0];
+        // 删除本节点序号
+        let index = childrenIndex.indexOf(this._index);
+        childrenIndex.splice(index, 1);
+
+        this.SetChildren(childrenIndex);
     }
 
-    Expansion() {
-        // 采用随机扩展比较高的概率获得最优值
-        let randomIndex = Math.floor(Math.random() * this._unExpands.length);
-        let index = this._unExpands[randomIndex];
-        this._unExpands.splice(randomIndex, 1);
-
-        let child = new Node();
-        child.Index = index;
-        child.Parent = this;
-        child.UnExpands = this.GetUnExpands();
-        this._children.push(child);
-        return child;
-    }
-
-    GetUnExpands() {
-        let childrenIndex = this._children.map(c => c.Index);
-        return this._unExpands.concat(childrenIndex);
+    SelectBestNode() {
+        let bestNode = {};
+        bestNode.WinRate = 0;
+        bestNode.Simulations = 0;
+        this._children.forEach(n => {
+            if (n.Simulations < bestNode.Simulations) {
+                return;
+            }
+            // if (n.WinRate < bestNode.WinRate) {
+            //     return;
+            // }
+            bestNode = n;
+        });
+        return bestNode;
     }
 }
 
@@ -124,48 +125,42 @@ class MCTS {
     constructor(game) {
         this._nextWin = false;  // 隔层设置胜负
         this._game = game;
-        this._root = new Node();
+
+        let childrenindex = [];
         for (let n = 0; n < game.BoardSize; n++) {
             //if (n === 14 || n === 21) continue;
-            this._root.UnExpands.push(n);
+            childrenindex.push(n);
         }
+
+        this._root = new Node(-1, null);
+        this._root.SetChildren(childrenindex);
+        this._root.Simulations = 1;     // 设置根节点模拟次数
+
         this._curNode = this._root;
         this._tryTimes = 36 * 36 * 36;
-        this._totalNodes = 0;
     }
 
-    SelectMaxValue() {
-        return this._curNode.SelectMaxValue();
+    SelectBestNode() {
+        return this._curNode.SelectBestNode();
     }
 
-    SetCurrentNode(index) {
-        let nextNode = this._curNode.SelectNextNode(index);
-        if (nextNode === null) {
-            return false;
+    SetCurrentNode(node) {
+        this._curNode = node;
+    }
+
+    SetCurrentIndex(index) {
+        let node = this._curNode.Children.find(n => n.Index === index);
+        if (node !== undefined) {
+            this._curNode = node;
         }
-        this._curNode = nextNode;
-        return true;
     }
 
     Simulate() {
         for (let n = 0; n < this._tryTimes; n++) {
-            let { node, isNew } = this.Selection(this._curNode);
-            if (node === null) {
-                console.log("MCTS Select null.");
-                continue;
-            }
+            let node = this._curNode.Selection();
             let actions = this.GetActions(node);
-            // if (actions.length === 3) {
-            //     if (actions[0] === 32 && actions[1] === 31 && actions[2] === 35) {
-            //         let i = 0;
-            //     }
-            // }
             this.Simulation(node, actions);
             this.Backpropagation(node);
-
-            if (isNew) {
-                this._totalNodes++;
-            }
         }
     }
 
@@ -179,41 +174,27 @@ class MCTS {
         return actions.reverse();
     }
 
-    Selection(startNode) {
-        let { node, isNew } = startNode.Selection();
-        // 如果不是叶子节点，继续向下寻找
-        while (!node.IsLeaf && node.Total !== 0) {
-            ({ node, isNew } = node.Selection());
-        }
-        return { node, isNew };
-    }
-
     Simulation(node, actions) {
-        // 该节点尝试总数+1
-        node.Total++;
         // 模拟返回胜利类型
         let { win, end } = this._game.Simulation(actions);
+        node.Finish = end;
+        node.Simulations++;
+
         // 当前节点类型
         let current = (actions.length - 1) % 2 === 0 ? 1 : -1;
-        // 模拟结果是当前节点胜利
         if (win === current) {
             this._nextWin = false;
             node.Win++;
         }
-        // 当前结点输或平局
         else {
             this._nextWin = true;
-        }
-        // 如果游戏结束,将该节点的扩展列表清空
-        if (end) {
-            node.UnExpands = [];
         }
     }
 
     Backpropagation(node) {
         let parent = node.Parent;
         while (parent !== null) {
-            parent.Total++;
+            parent.Simulations++;
             this._nextWin ? parent.Win++ : 0;
             this._nextWin = !this._nextWin;
             parent = parent.Parent;
@@ -221,22 +202,21 @@ class MCTS {
     }
 
     Print() {
-        console.log(this._totalNodes);
         console.log(`current_index:${this._curNode.Index}`);
-        console.log(`current_win/total:${this._curNode.Win}/${this._curNode.Total}`);
-        let details = this._curNode.Children.map(n => `${n.Index}(${n.Win}/${n.Total})`);
+        console.log(`current_win/total:${this._curNode.Win}/${this._curNode.Simulations}`);
+        let details = this._curNode.Children.map(n => `${n.Index}(${n.Win}/${n.Simulations})`);
         console.log(`- ${details.join(';')}`);
 
         // this.SetCurrentNode(31);
         // console.log(`current_index:${this._curNode.Index}`);
-        // console.log(`current_win/total:${this._curNode.Win}/${this._curNode.Total}`);
-        // details = this._curNode.Children.map(n => `${n.Index}(${n.Win}/${n.Total})`);
+        // console.log(`current_win/total:${this._curNode.Win}/${this._curNode.Simulations}`);
+        // details = this._curNode.Children.map(n => `${n.Index}(${n.Win}/${n.Simulations})`);
         // console.log(`- ${details.join(';')}`);
 
         // this.SetCurrentNode(32);
         // console.log(`current_index:${this._curNode.Index}`);
-        // console.log(`current_win/total:${this._curNode.Win}/${this._curNode.Total}`);
-        // details = this._curNode.Children.map(n => `${n.Index}(${n.Win}/${n.Total})`);
+        // console.log(`current_win/total:${this._curNode.Win}/${this._curNode.Simulations}`);
+        // details = this._curNode.Children.map(n => `${n.Index}(${n.Win}/${n.Simulations})`);
         // console.log(`- ${details.join(';')}`);
     }
 }
