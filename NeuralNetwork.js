@@ -1,5 +1,5 @@
 // 学习速度
-const learnSpeed = 0.5;
+const learnSpeed = 0.57;
 
 // 数组操作
 function optArray(a, b, opt) {

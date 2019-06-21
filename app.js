@@ -1,194 +1,267 @@
-let NeuralNetwork = require(`./NeuralNetwork`);
-//let neuralNetwork = new NeuralNetwork(36, 36, 36);
-let neuralNetwork = NeuralNetwork.Load(`gobang6-6`);
+// let NeuralNetwork = require(`./NeuralNetwork`);
+// //let neuralNetwork = new NeuralNetwork(36, 36, 36);
+// let neuralNetwork = NeuralNetwork.Load(`gobang6-6`);
 
-let Agent = require(`./QLearning`);
-let agent = new Agent(neuralNetwork);
-//let agent = Agent.Load(neuralNetwork);
+// let Agent = require(`./QLearning`);
+// let agent = new Agent(neuralNetwork);
+// //let agent = Agent.Load(neuralNetwork);
 
-let Game = require(`./Gobang`);
-let game = new Game(agent, neuralNetwork);
+// let Game = require(`./Gobang`);
+// let game = new Game(agent, neuralNetwork);
 
-function Epoch(count) {
-    for (let n = 0; n < count; n++) {
-        //let { gameStep, winType } = game.GenerateRandom();
-        //let { gameStep, winType } = game.GenerateNeural();
-        //let { gameStep, winType } = game.GenerateAgent();
-        let { gameStep, winType } = game.GenerateMCTS();
+// function Epoch(count) {
+//     for (let n = 0; n < count; n++) {
+//         //let { gameStep, winType } = game.GenerateRandom();
+//         //let { gameStep, winType } = game.GenerateNeural();
+//         //let { gameStep, winType } = game.GenerateAgent();
+//         let { gameStep, winType } = game.GenerateMCTS();
 
-        // 单边化处理
-        let steps = gameStep.map(item => {
-            if (item.type === 1) {
-                return { state: item.state, action: item.action, reward: 0 };
-            }
-            let reverseState = item.state.map(s => {
-                if (s === 1) return -1;
-                if (s === -1) return 1;
-                return 0;
-            });
-            return { state: reverseState, action: item.action, reward: 0 };
-        });
+//         // 单边化处理
+//         let steps = gameStep.map(item => {
+//             if (item.type === 1) {
+//                 return { state: item.state, action: item.action, reward: 0 };
+//             }
+//             let reverseState = item.state.map(s => {
+//                 if (s === 1) return -1;
+//                 if (s === -1) return 1;
+//                 return 0;
+//             });
+//             return { state: reverseState, action: item.action, reward: 0 };
+//         });
 
-        // 平局
-        if (winType === 0) {
-            steps[steps.length - 1].reward = -0.1;
-        }
-        // 有一方获胜
-        else {
-            // 最后一步得分1，其他步得分0
-            steps[steps.length - 1].reward = 1;
-            // 整场比赛每一步得分
-            // let winReward = 1;
-            // let loseReward = -1;
-            // for (let reidx = steps.length - 1, bWin = true;
-            //     reidx >= 0; reidx-- , bWin = !bWin) {
-            //     if (bWin) {
-            //         steps[reidx].reward = winReward;
-            //         winReward *= 0.45;
-            //     } else {
-            //         steps[reidx].reward = loseReward;
-            //         loseReward *= 0.45;
-            //     }
-            // }
-        }
+//         // 平局
+//         if (winType === 0) {
+//             steps[steps.length - 1].reward = -0.1;
+//         }
+//         // 有一方获胜
+//         else {
+//             // 最后一步得分1，其他步得分0
+//             steps[steps.length - 1].reward = 1;
+//             // 整场比赛每一步得分
+//             // let winReward = 1;
+//             // let loseReward = -1;
+//             // for (let reidx = steps.length - 1, bWin = true;
+//             //     reidx >= 0; reidx-- , bWin = !bWin) {
+//             //     if (bWin) {
+//             //         steps[reidx].reward = winReward;
+//             //         winReward *= 0.45;
+//             //     } else {
+//             //         steps[reidx].reward = loseReward;
+//             //         loseReward *= 0.45;
+//             //     }
+//             // }
+//         }
 
-        // 更新Qtable
-        //steps.forEach(step => agent.Update(step));
+//         // 更新Qtable
+//         //steps.forEach(step => agent.Update(step));
 
-        // 打印最后一步
-        // if (n % 100 === 0) {
-        //     console.log(`step:${n} count:${steps.length}`);
-        //     game.Print(steps[steps.length - 1]);
-        // }
+//         // 打印最后一步
+//         console.log(`step:${n} count:${steps.length}`);
+//         game.Print(steps[steps.length - 1]);
 
-        // 打印整个棋局
-        // steps.forEach((step, idx) => {
-        //     console.log(`step:${idx}`);
-        //     game.Print(step);
-        // });
+//         // 打印整个棋局
+//         // steps.forEach((step, idx) => {
+//         //     console.log(`step:${idx}`);
+//         //     game.Print(step);
+//         // });
 
-        // agent.Print();
-        // agent.Save();
-    }
-}
-
-Epoch(1);
-return;
-
-// let saveTime = 100;
-// for (let epoch = 0; epoch < 100000; epoch++) {
-//     // 产生样本
-//     Epoch(100);
-
-//     // 训练
-//     neuralNetwork.Minibatch(agent.GetBatchs());
-//     neuralNetwork.SimplePrint();
-
-//     // 保存
-//     if (epoch % saveTime === 0) {
-//         neuralNetwork.Save(`gobang6-6`);
+//         // agent.Print();
+//         // agent.Save();
 //     }
 // }
 
-////////////////////////////////////////////////////
-// 命令行人机对战部分
-const readline = require('readline');
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+// Epoch(1);
+// return;
 
-function GameStart() {
-    let gameStartInfo = `1.your first\r\n2.computer first\r\n3.roll game\r\n4.exit game\r\ninput 1-4:`;
-    rl.question(gameStartInfo, turn => {
-        switch (turn.trim()) {
-            case '1':
-            case '2':
-            case '3':
-                game.NewGame(turn.trim());
-                break;
-            case '4':
-            default:
-                rl.close();
-                break;
-        }
-        rl.prompt();
-    });
-}
+// // let saveTime = 100;
+// // for (let epoch = 0; epoch < 100000; epoch++) {
+// //     // 产生样本
+// //     Epoch(100);
 
-function GameLoop() {
-    rl.on('line', action => {
-        let result = game.HumanInput(action);
-        if (result === `human`) {
-            console.log("human win");
-            GameStart();
-            return;
-        }
+// //     // 训练
+// //     neuralNetwork.Minibatch(agent.GetBatchs());
+// //     neuralNetwork.SimplePrint();
 
-        result = game.ComputerInput();
-        if (result === `nowin`) {
-            rl.prompt();
-            return;
-        }
+// //     // 保存
+// //     if (epoch % saveTime === 0) {
+// //         neuralNetwork.Save(`gobang6-6`);
+// //     }
+// // }
 
-        if (result === `computer`) {
-            console.log("computer win");
-            GameStart();
-            return;
-        }
+// ////////////////////////////////////////////////////
+// // 命令行人机对战部分
+// const readline = require('readline');
+// const rl = readline.createInterface({
+//     input: process.stdin,
+//     output: process.stdout
+// });
 
-        if (result === `draw game`) {
-            console.log("draw game");
-            GameStart();
-            return;
-        }
-    });
+// function GameStart() {
+//     let gameStartInfo = `1.your first\r\n2.computer first\r\n3.roll game\r\n4.exit game\r\ninput 1-4:`;
+//     rl.question(gameStartInfo, turn => {
+//         switch (turn.trim()) {
+//             case '1':
+//             case '2':
+//             case '3':
+//                 game.NewGame(turn.trim());
+//                 break;
+//             case '4':
+//             default:
+//                 rl.close();
+//                 break;
+//         }
+//         rl.prompt();
+//     });
+// }
 
-    rl.on('close', function () {
-        console.log(`exit game`);
-        process.exit(0);
-    });
-}
+// function GameLoop() {
+//     rl.on('line', action => {
+//         let result = game.HumanInput(action);
+//         if (result === `human`) {
+//             console.log("human win");
+//             GameStart();
+//             return;
+//         }
 
-GameStart();
-GameLoop();
+//         result = game.ComputerInput();
+//         if (result === `nowin`) {
+//             rl.prompt();
+//             return;
+//         }
+
+//         if (result === `computer`) {
+//             console.log("computer win");
+//             GameStart();
+//             return;
+//         }
+
+//         if (result === `draw game`) {
+//             console.log("draw game");
+//             GameStart();
+//             return;
+//         }
+//     });
+
+//     rl.on('close', function () {
+//         console.log(`exit game`);
+//         process.exit(0);
+//     });
+// }
+
+// GameStart();
+// GameLoop();
 
 ////////////////////////////////////////////////////
 // 神经网络测试
-// let NeuralNetwork = require(`./NeuralNetwork`);
-// //let Gobang = NeuralNetwork.Load(`gobang`);
-// let Gobang = new NeuralNetwork(2, 16, 1);
+let NeuralNetwork = require(`./NeuralNetwork`);
+let Gobang = new NeuralNetwork(36, 36, 36);
+//let Gobang = NeuralNetwork.Load(`gobangpolicy`);
+
+let input = [];
+let output = [];
+let samples = [];
+for (let n = 0; n < 36; n++) {
+    input.push(0);
+}
+
+Gobang.Inputs = input;
+output = Gobang.Results;
+output[27] = 0.1;
+samples.push({ x: input.slice(), y: output.slice() });
+
+input[10] = 1;
+Gobang.Inputs = input;
+output = Gobang.Results;
+output[28] = 0.1;
+samples.push({ x: input.slice(), y: output.slice() });
+
+input[28] = -1;
+Gobang.Inputs = input;
+output = Gobang.Results;
+output[29] = 0.1;
+samples.push({ x: input.slice(), y: output.slice() });
+
+input[7] = 1;
+Gobang.Inputs = input;
+output = Gobang.Results;
+output[30] = 0.1;
+samples.push({ x: input.slice(), y: output.slice() });
+
+input[12] = -1;
+Gobang.Inputs = input;
+output = Gobang.Results;
+output[31] = 0.1;
+samples.push({ x: input.slice(), y: output.slice() });
+
+input[11] = 1;
+Gobang.Inputs = input;
+output = Gobang.Results;
+output[32] = 0.1;
+samples.push({ x: input.slice(), y: output.slice() });
+
+input[9] = -1;
+Gobang.Inputs = input;
+output = Gobang.Results;
+output[33] = 0.1;
+samples.push({ x: input.slice(), y: output.slice() });
+
+for (let trace = 0; trace < 200000; trace++) {
+    Gobang.Minibatch(samples);
+}
+
+Gobang.Inputs = samples[0].x;
+let v1 = Gobang.Results;
+
+Gobang.Inputs = samples[1].x;
+let v2 = Gobang.Results;
+
+Gobang.Inputs = samples[2].x;
+let v3 = Gobang.Results;
+
+Gobang.Inputs = samples[3].x;
+let v4 = Gobang.Results;
+
+Gobang.Inputs = samples[4].x;
+let v5 = Gobang.Results;
+
+Gobang.Inputs = samples[5].x;
+let v6 = Gobang.Results;
+
+Gobang.Inputs = samples[6].x;
+let v7 = Gobang.Results;
+
+// let Gobang = new NeuralNetwork(2, 16, 3);
 // let samples = [
-//     { x: [1.0e-1, 2.0e-1], y: [0] },
-//     { x: [1.5e-1, 3.0e-1], y: [0] },
-//     { x: [1.6e-1, 3.2e-1], y: [0] },
-//     { x: [2.3e-1, 4.6e-1], y: [0] },
-//     { x: [3.0e-1, 6.0e-1], y: [0] },
-//     { x: [3.1e-1, 6.2e-1], y: [0] },
-//     { x: [3.2e-1, 6.4e-1], y: [0] },
-//     { x: [3.3e-1, 6.6e-1], y: [0] },
-//     { x: [3.4e-1, 6.8e-1], y: [0] },
-//     { x: [3.6e-1, 7.2e-1], y: [0] },
-//     { x: [3.7e-1, 7.4e-1], y: [0] },
-//     { x: [3.8e-1, 7.6e-1], y: [0] },
-//     { x: [3.9e-1, 7.8e-1], y: [0] },
-//     { x: [1.0e-2, 2.0e-2], y: [0] },
-//     { x: [1.0e-3, 2.0e-3], y: [0] },
-//     { x: [1.0e-4, 2.0e-4], y: [0] },
-//     { x: [5.00e-1, 10.0e-1], y: [0] },
-//     { x: [1.55e-1, 3.10e-1], y: [0] },
-//     { x: [2.32e-1, 4.64e-1], y: [0] },
+//     { x: [1.0e-1, 2.0e-1], y: [0, 1, 1] },
+//     { x: [1.5e-1, 3.0e-1], y: [0, 1, 1] },
+//     { x: [1.6e-1, 3.2e-1], y: [0, 1, 1] },
+//     { x: [2.3e-1, 4.6e-1], y: [0, 1, 1] },
+//     { x: [3.0e-1, 6.0e-1], y: [0, 1, 1] },
+//     { x: [3.1e-1, 6.2e-1], y: [0, 1, 1] },
+//     { x: [3.2e-1, 6.4e-1], y: [0, 1, 1] },
+//     { x: [3.3e-1, 6.6e-1], y: [0, 1, 1] },
+//     { x: [3.4e-1, 6.8e-1], y: [0, 1, 1] },
+//     { x: [3.6e-1, 7.2e-1], y: [0, 1, 1] },
+//     { x: [3.7e-1, 7.4e-1], y: [0, 1, 1] },
+//     { x: [3.8e-1, 7.6e-1], y: [0, 1, 1] },
+//     { x: [3.9e-1, 7.8e-1], y: [0, 1, 1] },
+//     { x: [1.0e-2, 2.0e-2], y: [0, 1, 1] },
+//     { x: [1.0e-3, 2.0e-3], y: [0, 1, 1] },
+//     { x: [1.0e-4, 2.0e-4], y: [0, 1, 1] },
+//     { x: [5.00e-1, 10.0e-1], y: [0, 1, 1] },
+//     { x: [1.55e-1, 3.10e-1], y: [0, 1, 1] },
+//     { x: [2.32e-1, 4.64e-1], y: [0, 1, 1] },
 // ];
 
 // let testsamples = [
-//     { x: [1.0e-1, 2.0e-1], y: [0] },
-//     { x: [1.5e-1, 3.0e-1], y: [1] },
-//     { x: [4.1e-1, 8.2e-1], y: [0] },
-//     { x: [1.1e-5, 2.2e-5], y: [0] },
-//     { x: [3.5e-1, 7.0e-1], y: [0] },
-//     { x: [3.5e-1, 7.1e-1], y: [0] },
-//     { x: [3.5e-1, 7.2e-1], y: [0] },
-//     { x: [3.5e-1, 7.0e-1], y: [0.1] },
+//     { x: [1.0e-1, 2.0e-1], y: [0, 1] },
+//     { x: [1.5e-1, 3.0e-1], y: [1, 0] },
+//     { x: [4.1e-1, 8.2e-1], y: [0, 1] },
+//     { x: [1.1e-5, 2.2e-5], y: [0, 1] },
+//     { x: [3.5e-1, 7.0e-1], y: [0, 1] },
+//     { x: [3.5e-1, 7.1e-1], y: [0, 1] },
+//     { x: [3.5e-1, 7.2e-1], y: [0, 1] },
+//     { x: [3.5e-1, 7.0e-1], y: [0.1, 0.1] },
 // ];
 
 // function testNetwork(samples) {
@@ -202,8 +275,13 @@ GameLoop();
 // }
 
 // // using mini-batch stochastic gradient descent
-// testNetwork(testsamples);
-// for (let n = 0; n < 10000; n++) {
+// //testNetwork(testsamples);
+// Gobang.Inputs = [1.0e-1, 2.0e-1];
+// Gobang.Outputs = [0, 1, 1];
+// console.log(Gobang.Results);
+// Gobang.SimplePrint();
+
+// for (let n = 0; n < 100; n++) {
 //     let temps = [];
 //     for (let s = 0; s < 4; s++) {
 //         let randomIdx = Math.floor(Math.random() * samples.length);
@@ -212,8 +290,11 @@ GameLoop();
 //     //Gobang.Minibatch(samples);
 //     Gobang.Minibatch(temps);
 // }
-// testNetwork(testsamples);
-// Gobang.Save(`gobang`);
+// //testNetwork(testsamples);
+// Gobang.Inputs = [1.0e-1, 2.0e-1];
+// Gobang.Outputs = [0, 1, 1];
+// console.log(Gobang.Results);
+// Gobang.SimplePrint();
 
 ////////////////////////////////////////////////////
 // 精确控制神经网络参数测试

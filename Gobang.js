@@ -257,8 +257,8 @@ class Game {
                 type: curtype,
             });
 
-            console.log(`step:${gameStep.length}`);
-            this.Print(gameStep[gameStep.length - 1]);
+            //console.log(`step:${gameStep.length}`);
+            //this.Print(gameStep[gameStep.length - 1]);
 
             this._board[action] = curtype;
 
@@ -279,7 +279,7 @@ class Game {
         // mcts模拟过程中会改变棋盘
         let tempBoard = this._board.slice();
         this._mcts.Simulate();
-        this._mcts.Print();
+        //this._mcts.Print();
         this._board = tempBoard;
 
         let bestNode = this._mcts.SelectBestNode();
